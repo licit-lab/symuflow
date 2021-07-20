@@ -1,0 +1,6 @@
+macro(appendingfiles VAR_TO_APPEND FILELIST)
+  get_property(tmp GLOBAL PROPERTY ${VAR_TO_APPEND})
+  file(GLOB SRCFILES ${${FILELIST}})
+  list(APPEND tmp ${SRCFILES})
+  set_property(GLOBAL PROPERTY ${VAR_TO_APPEND} "${tmp}")
+endmacro()
