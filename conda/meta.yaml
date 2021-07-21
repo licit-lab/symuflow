@@ -1,7 +1,7 @@
 {% set version = "1.0.0" %}
 
 package:
-  name: symuvia
+  name: symuflow
   version: {{ version }}
 
 source:
@@ -16,22 +16,26 @@ requirements:
     - {{ compiler('cxx') }}
     - make
     - cmake
-    - python=3.9
   host:
-    - boost
     - boost-cpp
     - libgdal=3.2.1
     - xerces-c=3.2.3
     - xqilla=2.3.4
     - rapidjson
     - unixodbc
-    - python=3.9
+    - symucore
   run:
-    - boost
     - boost-cpp
     - libgdal=3.2.1
     - xerces-c=3.2.3
     - xqilla=2.3.4
     - rapidjson
     - unixodbc
-    - python=3.9
+    - symucore
+
+about:
+  home: https://github.com/licit-lab/symuflow
+  license: LGPL-3.0-only
+  license_file: LICENSE
+  summary: Flow engine for traffic simulation.
+  dev_url: https://github.com/licit-lab/symuflow
