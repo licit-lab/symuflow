@@ -273,16 +273,21 @@ target_link_libraries( SymuFlow ${XQILLA_LIBRARIES})
 target_link_libraries( SymuFlow ${XercesC_LIBRARIES})
 
 # Rapidjson
-#target_link_libraries( SymuFlow ${RAPIDJSON_LIBRARY}/${RAPIDJSON_LIBRARY})
+target_link_libraries( SymuFlow ${RAPIDJSON_LIBRARY})
 
 # Python
 target_link_libraries( SymuFlow ${Python3_LIBRARIES})
 
+
 # Visible
 target_include_directories(SymuFlow PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:include/SymuFlow>
+    "$<INSTALL_INTERFACE:include/SymuFlow;include/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}>"
 )
 
 
-install(TARGETS SymuFlow DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(TARGETS SymuFlow
+        EXPORT SymuFlowTarget
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

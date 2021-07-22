@@ -41,7 +41,7 @@ struct AssignmentData
     bool                bPredefini;     // Indique s'il s'agit d'un itinéraire prédéfini ou calculé
     std::string         strRouteId;     // Identifiant de la route si l'itineraire est préfini depuis une route
     Connexion *         pJunction;      // Noeud correspondant au point de jonction si l'itinéraire est vide (cas origine destination en contact direct)
-   
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Sérialisation
@@ -62,7 +62,7 @@ struct RepartitionFlux
     int         nNbVoiesAval;       // nb max de voies aval
 
     double**    pCoefficients;      // Liste des coefficients ordonnées de la répartion pour chaque destination
-    int**       nNbVeh;             // Liste des nombres de véhicules qui ont été réparti pour chaque destination  
+    int**       nNbVeh;             // Liste des nombres de véhicules qui ont été réparti pour chaque destination
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Sérialisation
@@ -112,18 +112,18 @@ protected:
 	std::string         m_strID;							// Identifiant unique alpha-numérique
 	int					m_nID;								// Identifiant unique de type entier
 
-	ControleurDeFeux    *m_pCtrlDeFeux;						// Controleur de feux    
+	ControleurDeFeux    *m_pCtrlDeFeux;						// Controleur de feux
 
     Reseau*             m_pReseau;							// Pointeur sur le réseau
 
-	int					m_nNbMaxVoies;                      // Nombre maximal de voies des tronçons amont et aval    
+	int					m_nNbMaxVoies;                      // Nombre maximal de voies des tronçons amont et aval
 
-	int					m_nZLevel;							// Indique le niveau ("z-level") du tronçon afin de hiérarchiser les tronçons se coupant dans le plan. 
+	int					m_nZLevel;							// Indique le niveau ("z-level") du tronçon afin de hiérarchiser les tronçons se coupant dans le plan.
 															// Cette notion est utile uniquement dans le cadre de l'intégration de SymuVia au sein de la plateforme EVE.
 
 	// Paramètres géométriques de la connexion
     double Abscisse;
-	double Ordonne; 
+	double Ordonne;
 
     std::map<std::pair<Tuyau*,Tuyau*>, std::map<TypeVehicule*, double> >  m_LstCoutsAVide;    // Liste des couts à vide des mouvements de la connexion pour affectation
 
@@ -137,7 +137,7 @@ public:
 	std::deque<Tuyau*> m_LstTuyAssAm;							// Liste des tuyaux amont
 	std::deque<Tuyau*> m_LstTuyAssAv;							// Liste des tuyaux aval
 
-	std::map<Voie*, std::map<Tuyau*, std::map<int, boost::shared_ptr<MouvementsSortie> >, LessPtr<Tuyau> >, LessPtr<Voie> >	m_mapMvtAutorises;			// Stockage des mouvements autorisés	
+	std::map<Voie*, std::map<Tuyau*, std::map<int, boost::shared_ptr<MouvementsSortie> >, LessPtr<Tuyau> >, LessPtr<Voie> >	m_mapMvtAutorises;			// Stockage des mouvements autorisés
 
     // Accesseur pour le membre ci-dessus ajouté pour accès depuis python (problème de gestion des maps avec un type pointeur pour clé)
     std::map<int, boost::shared_ptr<MouvementsSortie> > & GetMovement(Voie * pVoie, Tuyau * pTuyau);
@@ -157,12 +157,12 @@ public:
 
 
 	// Affectation
-	typedef std::map<Tuyau*, double, LessPtr<Tuyau>> typeCoeffAffectation;
-	
+	typedef std::map<Tuyau*, double, LessPtr<Tuyau> > typeCoeffAffectation;
+
 	typedef std::pair<Tuyau*, SymuViaTripNode*> typeCoupleEntreeDestination;
-	typedef std::pair<double, std::map< typeCoupleEntreeDestination, typeCoeffAffectation>> typeVarianteTemporelleAffectation;
-    typedef std::pair<PlageTemporelle*, std::map< typeCoupleEntreeDestination, typeCoeffAffectation>> typePlageTemporelleAffectation;
-	
+	typedef std::pair<double, std::map< typeCoupleEntreeDestination, typeCoeffAffectation> > typeVarianteTemporelleAffectation;
+    typedef std::pair<PlageTemporelle*, std::map< typeCoupleEntreeDestination, typeCoeffAffectation> > typePlageTemporelleAffectation;
+
 	std::map<TypeVehicule*, std::deque<typeVarianteTemporelleAffectation> > m_mapCoeffAffectation;						// Stockage des coefficients d'affectation de la période d'affectation courante
 	std::map<TypeVehicule*, std::deque<typeVarianteTemporelleAffectation> > m_mapCoeffAffectationPrev;					// Stockage des coefficients d'affectation de la période d'affectation précédente (utile pour la recherche d'équilibre par la méthode des moyennes successives)
 	std::map<TypeVehicule*, std::deque<typePlageTemporelleAffectation> > m_mapCoeffAffectationPT;					    // Stockage des coefficients d'affectation de la période d'affectation courante par plages temporelles
@@ -186,7 +186,7 @@ public:
     double GetAbscisse() { return Abscisse; }
     double GetOrdonnee() { return Ordonne; }
 
-	// Fonctions donnant l'état des variables        
+	// Fonctions donnant l'état des variables
     int     GetNbElAval() const{return (int)m_LstTuyAv.size() ;}
     int     GetNbElAmont() const {return (int)m_LstTuyAm.size();}
 
@@ -222,7 +222,7 @@ public:
                          );
 
 	void    AddEltAmont(Tuyau *pT);
-    void    AddEltAval(Tuyau *pT);        
+    void    AddEltAval(Tuyau *pT);
 
     void    AddEltAmontAss(Tuyau *pT){m_LstTuyAssAm.push_back(pT);}
     void    AddEltAvalAss(Tuyau *pT){m_LstTuyAssAv.push_back(pT);}
@@ -241,7 +241,7 @@ public:
 	void	InitSimuTrafic();
 
 	 void calculBary(void); // Calcul le barycentre du répartiteur
-    
+
     // vérifie que le carrefour n'est pas en mode meso
     bool IsTotalyMesoNode() const;
     // from CMesoNode
@@ -269,7 +269,7 @@ private:
 public:
 
 	std::string GetUnifiedID() { return m_strID; }
-	
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Sérialisation

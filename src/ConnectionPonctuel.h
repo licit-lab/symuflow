@@ -1,6 +1,6 @@
 #pragma once
 #ifndef connectionPonctuelH
-#define connectionPonctuelH 
+#define connectionPonctuelH
 
 //#define NB_ELT_MAX 10
 
@@ -14,37 +14,37 @@ class Reseau;
 class Vehicule;
 class VoieMicro;
 
-// La classe connexion est la classe mère de toutes les liaisons entre les tronçons.
-// Ses fils sont entrées, sorties et répartiteurs
+// La classe connexion est la classe mï¿½re de toutes les liaisons entre les tronï¿½ons.
+// Ses fils sont entrï¿½es, sorties et rï¿½partiteurs
 
 class ConnectionPonctuel : public Connexion
 {
 protected:
 
-    std::deque<boost::shared_ptr<Vehicule>> m_LstInsVeh;        // Liste des véhicules suceptibles de traverser la connexion au cours du pas de temps (décelé en appliquant la loi de poursuite classique)
+    std::deque<boost::shared_ptr<Vehicule> > m_LstInsVeh;        // Liste des vï¿½hicules suceptibles de traverser la connexion au cours du pas de temps (dï¿½celï¿½ en appliquant la loi de poursuite classique)
 
 public:
 
-        // Constructeurs, destructeurs et assimilés
+        // Constructeurs, destructeurs et assimilï¿½s
 	    virtual ~ConnectionPonctuel(void); // Destructeur
-        ConnectionPonctuel(void); // constructeur par défaut
+        ConnectionPonctuel(void); // constructeur par dï¿½faut
 		ConnectionPonctuel(std::string, Reseau *pReseau); // constructeur normal
 
-        bool Init( XERCES_CPP_NAMESPACE::DOMNode *pXmlNodeCnx, Logger *pOfLog);        
+        bool Init( XERCES_CPP_NAMESPACE::DOMNode *pXmlNodeCnx, Logger *pOfLog);
 
         void        AddInsVeh(boost::shared_ptr<Vehicule> pV){ m_LstInsVeh.push_back(pV); }
         void        DelInsVeh(boost::shared_ptr<Vehicule> pV);
 
         void        ClearLstInsVeh(){m_LstInsVeh.clear();}
 
-        void        CopyFrom( ConnectionPonctuel *pCnx);          
+        void        CopyFrom( ConnectionPonctuel *pCnx);
 
 		void	    InitSimuTrafic(){}
 
         virtual bool ComputeTraffic(boost::shared_ptr<Vehicule> pV, VoieMicro * pUpstreamLane, double dbInstant, double dbPasTemps, double &dbMinimizedGoalDistance) {return false;}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 	friend class boost::serialization::access;

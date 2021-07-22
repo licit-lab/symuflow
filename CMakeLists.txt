@@ -130,3 +130,28 @@ SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
 add_subdirectory(src)
+
+
+# Install the FindXqilla helper
+install(
+  FILES
+  ${CMAKE_SOURCE_DIR}/cmake/modules/FindXqilla.cmake
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/symuflow)
+
+install(EXPORT SymuFlowTarget DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/symuflow)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(${CMAKE_BINARY_DIR}/SymuFlow/SymuFlowConfigVersion.cmake
+  VERSION ${SymuFlow_VERSION}
+  COMPATIBILITY ExactVersion)
+
+configure_package_config_file(${PROJECT_SOURCE_DIR}/cmake/SymuFlowConfig.cmake.in
+  ${CMAKE_BINARY_DIR}/SymuFlow/SymuFlowConfig.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/symuflow)
+
+install(
+  FILES
+  ${CMAKE_BINARY_DIR}/SymuFlow/SymuFlowConfig.cmake
+  ${CMAKE_BINARY_DIR}/SymuFlow/SymuFlowConfigVersion.cmake
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/symuflow
+  COMPONENT Development)

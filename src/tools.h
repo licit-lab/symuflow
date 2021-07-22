@@ -34,42 +34,42 @@ namespace XERCES_CPP_NAMESPACE {
 }
 
 template<class T>
-class LessPtr 
+class LessPtr
 {
 public:
 	bool operator()(const T *a, const T *b) const
-	{	
-	  return (a->GetLabel() < b->GetLabel());	  	
+	{
+	  return (a->GetLabel() < b->GetLabel());
 	}
 };
 
 template<class T>
-class LessOriginPtr 
+class LessOriginPtr
 {
 public:
 	bool operator()(const T *a, const T *b) const
-	{	
-	  return (a->GetOutputID() < b->GetOutputID());	  	
+	{
+	  return (a->GetOutputID() < b->GetOutputID());
 	}
 };
 
 template<class T>
-class LessConnexionPtr 
+class LessConnexionPtr
 {
 public:
 	bool operator()(const T *a, const T *b) const
-	{	
-	  return (a->GetID() < b->GetID());	  	
+	{
+	  return (a->GetID() < b->GetID());
 	}
 };
 
 template<class T>
-class LessVehiculePtr 
+class LessVehiculePtr
 {
 public:
 	bool operator()(const boost::shared_ptr<T> a, const boost::shared_ptr<T> b) const
-	{	
-	  return (a->GetID() < b->GetID());	  	
+	{
+	  return (a->GetID() < b->GetID());
 	}
 };
 
@@ -106,14 +106,14 @@ public:
 };
 
 // Foncteur servant à libérer un pointeur - applicable à n'importe quel type
-struct Delete 
-{ 
-   template <class T> void operator ()(T*& p) const 
-   { 
+struct Delete
+{
+   template <class T> void operator ()(T*& p) const
+   {
       delete p;
       p = NULL;
-   } 
-}; 
+   }
+};
 
 // Structure de définition d'une plage temporelle
 class PlageTemporelle {
@@ -127,16 +127,16 @@ public:
     {
         // look for existing TimeRange with dStart and dEnd
         std::vector<PlageTemporelle *>::iterator it = plages.begin();
-       
+
         while ( it != plages.end() )
         {
             if( (*it)->m_Debut == dStart- dDebutSimu && (*it)->m_Fin == dEnd -dDebutSimu)
-            { 
-           
+            {
+
                 return (*it);
             }
             it++;
-           
+
         }
         // create the temporal range
         PlageTemporelle* plage = new PlageTemporelle();
@@ -171,19 +171,19 @@ BOOST_STRONG_TYPEDEF(double, tracked_double)
 template<class Archive>
 void serialize(Archive &ar, tracked_double& td, const unsigned int version){
     ar & BOOST_SERIALIZATION_NVP2("tracked_double",static_cast<double&>(td));
-} 
+}
 
 // définition d'un type bool qui peut être sérialisé dans un shared_ptr
 BOOST_STRONG_TYPEDEF(bool, tracked_bool)
 template<class Archive>
 void serialize(Archive &ar, tracked_bool& tb, const unsigned int version){
     ar & BOOST_SERIALIZATION_NVP2("tracked_bool",static_cast<bool&>(tb));
-} 
+}
 
 
 // Structure template de stockage des variantes temporelles lorsque le caractère des variantes est exprimées à l'aide d'une durée d'application
 // ou d'une plage temporelle (l'un ou l'autre exclusif)
-template<class T> struct TimeVariation 
+template<class T> struct TimeVariation
 {
 public:
     TimeVariation() : m_pPlage(NULL) { m_dbPeriod = 0; };
@@ -206,7 +206,7 @@ private:
 };
 
 // Structure template de stockage des variantes temporelles lorsque le caractère temporel des variantes est exprimées à l'aide d'une heure de début d'aplication
-template<class T> struct TimeVariationEx 
+template<class T> struct TimeVariationEx
 {
 	STime                   m_dtDebut;        // Heure de début de la variante
     boost::shared_ptr<T>    m_pData;          // Données
@@ -230,7 +230,7 @@ private:
 bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTemporelle*> & plages);
 
 // Fonctions template de manipulations des listes des variantes temporelles
-// REMARQUES : le code des fonctions Template est ici sinon elles ne 
+// REMARQUES : le code des fonctions Template est ici sinon elles ne
 // sont pas reconnues à l'édition des liens (pas supporté par le compilo)
 
 
@@ -244,10 +244,10 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 // Historique: 20/06/2008 (C.Bécarie - Tinea)
 //             Création
 //================================================================
-(   
+(
     double                          dbPeriod,   // Période de validité de la variante
     boost::shared_ptr<T>            pData,      // Variante
-    std::deque<TimeVariation<T>>    *pLstTV     // Liste des variantes
+    std::deque<TimeVariation<T> >    *pLstTV     // Liste des variantes
 )
 {
     TimeVariation<T> TV;
@@ -273,10 +273,10 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 // Historique: 06/09/2011 (O.Tonck - Ipsis)
 //             Création
 //================================================================
-(   
+(
     PlageTemporelle                 *pPlage,    // Plage temporelle associée à la variante
     boost::shared_ptr<T>            pData,      // Variante
-    std::deque<TimeVariation<T>>    *pLstTV     // Liste des variantes
+    std::deque<TimeVariation<T> >    *pLstTV     // Liste des variantes
 )
 {
     TimeVariation<T> TV;
@@ -303,11 +303,11 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 // Historique: 27/07/2011 (O. Tonck - IPSIS)
 //             Création
 //================================================================
-(   
+(
     double                          dbStartTime,    // Début de validité de la variante
     double                          dbEndTime,      // Fin de validité de la variante
     boost::shared_ptr<T>            pData,          // Variante
-    std::deque<TimeVariation<T>>    *pLstTV         // Liste des variantes
+    std::deque<TimeVariation<T> >    *pLstTV         // Liste des variantes
 )
 {
     // **************************************************
@@ -316,7 +316,7 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 
     // recherche de la première variante impactée
     double dbCumul = 0.0;
-    typename std::deque<TimeVariation<T>>::iterator iter = pLstTV->begin();
+    typename std::deque<TimeVariation<T> >::iterator iter = pLstTV->begin();
     while(iter != pLstTV->end())
     {
         double currentDuree = (*iter).m_dbPeriod;
@@ -334,7 +334,7 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
             iter = pLstTV->insert(iter + 1,  tv);
         }
         // cas des variantes intermédiaires
-        else if(dbCumul >= dbStartTime && dbCumul+(*iter).m_dbPeriod <= dbEndTime) 
+        else if(dbCumul >= dbStartTime && dbCumul+(*iter).m_dbPeriod <= dbEndTime)
         {
             (*iter).m_pData.reset();
             (*iter).m_pData = boost::shared_ptr<T>(new T(*pData));
@@ -373,25 +373,25 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 //================================================================
     template <class T> void EraseListOfVariation
 //----------------------------------------------------------------
-// Fonction  : Suppression de tous les éléments de la liste des 
+// Fonction  : Suppression de tous les éléments de la liste des
 //             variantes temporelles
 // Remarques :
 // Version du: 20/06/2008
 // Historique: 20/06/2008 (C.Bécarie - Tinea)
 //             Création
 //================================================================
-( 
-    std::deque<TimeVariation<T>> *pLstTV
+(
+    std::deque<TimeVariation<T> > *pLstTV
 )
 {
     TimeVariation<T>    TV;
 
     if(!pLstTV)
         return;
-    
+
     for(int i=0; i<(int)pLstTV->size(); i++)
     {
-        TV = pLstTV->at(i); 
+        TV = pLstTV->at(i);
         TV.m_pData.reset();
     }
 
@@ -408,8 +408,8 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 // Historique: 23/06/2008 (C.Bécarie - Tinea)
 //             Création
 //================================================================
-( 
-    std::deque<TimeVariation<T>> *pLstTV,
+(
+    std::deque<TimeVariation<T> > *pLstTV,
     double  dbTime,
     double  dbLag
 )
@@ -419,7 +419,7 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
     double              dbCumTimePre = 0;
     int                 i = 0;
     TimeVariation<T>    TV;
-    typename std::deque<TimeVariation<T>>::iterator iTV;
+    typename std::deque<TimeVariation<T> >::iterator iTV;
     double              dbPeriod;
     boost::shared_ptr<T>    pData;
 
@@ -446,19 +446,19 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
         }
     }
 
-    TV = pLstTV->at(0);   
+    TV = pLstTV->at(0);
     dbCumTime += TV.m_dbPeriod;
 
     while(dbCumTime < dbTime && nIndex < (int)pLstTV->size() )
-    {        
+    {
         TV = pLstTV->at(++nIndex);
         dbCumTimePre = dbCumTime;
         dbCumTime += TV.m_dbPeriod;
-    }    
-    
+    }
+
     if(nIndex < (int)pLstTV->size())
     {
-        // Modification de la durée de la dernière variante afin que la nouvelle 
+        // Modification de la durée de la dernière variante afin que la nouvelle
         // variante soit pris en compte dès le pas de temps courant
         dbPeriod = dbTime - dbCumTimePre - 0.1;
         pData = TV.m_pData;
@@ -466,12 +466,12 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
         // Suppression des variantes suivantes
         for(i=nIndex; i<(int)pLstTV->size(); i++)
         {
-            TV = pLstTV->at(i); 
+            TV = pLstTV->at(i);
 
             if(i!=nIndex)
                 TV.m_pData.reset();
-        }  
-        
+        }
+
         i = 0;
         for ( iTV = pLstTV->begin( ); iTV != pLstTV->end( ); iTV++ )
         {
@@ -482,8 +482,8 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
                 // Ajout de la variation modifiée
                 AddVariation(dbPeriod, pData, pLstTV);
                 return;
-            }            
-        }        
+            }
+        }
     }
 }
 
@@ -498,12 +498,12 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 // Historique: 20/06/2008 (C.Bécarie - Tinea)
 //             Création
 //================================================================
-( 
-    double dbTime, 
-    std::deque<TimeVariation<T>> *pLstTV,
+(
+    double dbTime,
+    std::deque<TimeVariation<T> > *pLstTV,
     double dbLag
 )
-{    
+{
     double              dbCumTime = - dbLag;
 
     if(!pLstTV)
@@ -527,7 +527,7 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
             }
         }
     }
-    
+
     // Si pas de plage temporelle correspondante, on regarde les durées
     size_t variationIdx = 0;
     while(variationIdx < pLstTV->size() && pLstTV->at(variationIdx).m_pPlage != NULL)
@@ -546,7 +546,7 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
     variationIdx++;
 
     while(dbCumTime < dbTime && variationIdx < pLstTV->size() )
-    {        
+    {
         // on ne prend pas en compte les plages temporelles
         if(pLstTV->at(variationIdx).m_pPlage == NULL)
         {
@@ -571,7 +571,7 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 (
     double dbTimeStart,
     double dbTimeEnd,
-    std::deque<TimeVariation<T>> *pLstTV,
+    std::deque<TimeVariation<T> > *pLstTV,
     double dbLag
 )
 {
@@ -635,12 +635,12 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 // Historique: 20/10/2014 (ETS - IPSIS)
 //             Création
 //================================================================
-( 
-    double dbTime, 
-    std::deque<TimeVariation<T>> *pLstTV,
+(
+    double dbTime,
+    std::deque<TimeVariation<T> > *pLstTV,
     double dbLag
 )
-{    
+{
     double              dbCumTime = - dbLag;
 
     if(!pLstTV)
@@ -669,7 +669,7 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
     {
         return variations;
     }
-    
+
     // Si pas de plage temporelle correspondante, on regarde les durées
     size_t variationIdx = 0;
     while(variationIdx < pLstTV->size() && pLstTV->at(variationIdx).m_pPlage != NULL)
@@ -688,7 +688,7 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
     variationIdx++;
 
     while(dbCumTime < dbTime && variationIdx < pLstTV->size() )
-    {        
+    {
         // on ne prend pas en compte les plages temporelles
         if(pLstTV->at(variationIdx).m_pPlage == NULL)
         {
@@ -709,13 +709,13 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 // Historique: 24/09/2012 (O.Tonck - IPSIS)
 //             Création
 //================================================================
-( 
-    double dbTimeDebut, 
-    double dbTimeFin, 
-    std::deque<TimeVariation<T>> *pLstTV,
+(
+    double dbTimeDebut,
+    double dbTimeFin,
+    std::deque<TimeVariation<T> > *pLstTV,
     double dbLag
 )
-{    
+{
     double              dbCumTime = -dbLag;
     double              dbCurrentTime = dbTimeDebut;
     TimeVariation<T>   *pTV;
@@ -772,7 +772,7 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
             variationIdx++;
 
             while(dbCumTime <= dbCurrentTime && variationIdx < pLstTV->size() )
-            {        
+            {
                 // on ne prend pas en compte les plages temporelles
                 if(pLstTV->at(variationIdx).m_pPlage == NULL)
                 {
@@ -805,11 +805,11 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 // Historique: 20/06/2008 (C.Bécarie - Tinea)
 //             Création
 //================================================================
-( 
-    double dbTime, 
-    std::deque<TimeVariationEx<T>> *pLstTV
+(
+    double dbTime,
+    std::deque<TimeVariationEx<T> > *pLstTV
 )
-{    
+{
     int                 nIndex = 0;
     double              dbCumTime = 0;
     TimeVariationEx<T>    TV;
@@ -819,11 +819,11 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 
     if(pLstTV->size()==0)
         return NULL;
-    
-    TV = pLstTV[0];   
+
+    TV = pLstTV[0];
     for(int i=0; i<(int)pLstT->sie(); i++)
     {
-        TV = pLstTV[i];   
+        TV = pLstTV[i];
         if( TV.m_dtDebut > dbTime)
             return pLstTV[i-1];
     }
@@ -835,18 +835,18 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
     template <class T> double GetCumTime
 //----------------------------------------------------------------
 // Fonction  : Retourne le temps passé dans les variantes précédentes
-// Remarques : 
+// Remarques :
 // Version du: 20/06/2008
 // Historique: 20/06/2008 (C.Bécarie - Tinea)
 //             Création
 //================================================================
-( 
-    double dbTime, 
-    std::deque<TimeVariation<T>> *pLstTV
+(
+    double dbTime,
+    std::deque<TimeVariation<T> > *pLstTV
 )
-{    
+{
     int                 nIndex = 0;
-    double              dbCumTime = 0; 
+    double              dbCumTime = 0;
 
     if(!pLstTV)
         return 0;
@@ -855,12 +855,12 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
         return 0;
 
     if(pLstTV->size()==0)
-        return 0;    
-    
+        return 0;
+
     TimeVariation<T> * pTV = &pLstTV->at(0);
 
     while(dbCumTime < dbTime && nIndex < (int)pLstTV->size()-1 )
-    {    
+    {
         // on ignore les plages temporelles ici
         if (pTV->m_pPlage == NULL)
         {
@@ -877,7 +877,7 @@ bool CheckPlagesTemporellesEx(double dbDureeSimu, const std::vector<PlageTempore
 template<class T> class ListOfTimeVariation
 {
     private:
-        std::deque<TimeVariation<T>>            m_LstTV;      // Liste des variantes
+        std::deque<TimeVariation<T> >            m_LstTV;      // Liste des variantes
         double                                  m_dbLag;        // Décalage (en seconde) entre la première variante de la liste par rapport au début de la simulation
 
     public:
@@ -896,7 +896,7 @@ template<class T> class ListOfTimeVariation
 
         void InsertVariation(double dbStartTime, double dbEndTime, boost::shared_ptr<T> pData);
 
-        std::deque<TimeVariation<T>>*           GetLstTV(){return &m_LstTV;}
+        std::deque<TimeVariation<T> >*           GetLstTV(){return &m_LstTV;}
 
         double                                  GetLag(){return m_dbLag;}
         void                                    SetLag(double dbLag){m_dbLag = dbLag;}
@@ -928,12 +928,12 @@ private:
 
 	template<class T> void ListOfTimeVariation<T>::Copy(ListOfTimeVariation *plstTV)
 	{
-		m_dbLag = plstTV->m_dbLag;			
-		m_LstTV = plstTV->m_LstTV;		
+		m_dbLag = plstTV->m_dbLag;
+		m_LstTV = plstTV->m_LstTV;
 	}
 
     template<class T> T* ListOfTimeVariation<T>::GetVariationEx(double dbTime)
-    {        
+    {
         double dbPlaceHolder;
         return GetVariationEx(dbTime, dbPlaceHolder);
     }
@@ -1044,10 +1044,10 @@ private:
 template<class T> class ListOfTimeVariationEx
 {
 private:
-    std::deque<TimeVariationEx<T>>            m_LstTV;      // Liste des variantes
+    std::deque<TimeVariationEx<T> >            m_LstTV;      // Liste des variantes
 
 public:
-    ListOfTimeVariationEx();        
+    ListOfTimeVariationEx();
     ~ListOfTimeVariationEx();
 
     void AddVariation(STime  dtDebut, T* pData);
@@ -1055,7 +1055,7 @@ public:
     T* GetFirstVariationEx();
     T* GetVariation(int n){return m_LstTV[n].m_pData.get();};
 
-    std::deque<TimeVariationEx<T>>*           GetLstTV(){return &m_LstTV;};
+    std::deque<TimeVariationEx<T> >*           GetLstTV(){return &m_LstTV;};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Sérialisation
@@ -1070,7 +1070,7 @@ private:
 };
 
     template<class T> ListOfTimeVariationEx<T>::ListOfTimeVariationEx()
-    {                
+    {
         m_LstTV.clear();
     }
 
@@ -1080,10 +1080,10 @@ private:
     }
 
 	template<class T> T* ListOfTimeVariationEx<T>::GetVariationEx(STime dtTmp)
-    {        
+    {
         int                 nIndex = 0;
         double              dbCumTime = 0;
-        TimeVariationEx<T>  *pTV, *pTVEx;  
+        TimeVariationEx<T>  *pTV, *pTVEx;
         size_t              nvars;
 
 		if(dtTmp < STime())
@@ -1097,13 +1097,13 @@ private:
         for(size_t i=0; i< nvars; i++)
         {
             pTV = &(m_LstTV[i]);
-            if( pTV->m_dtDebut > dtTmp ) 
-                return pTVEx->m_pData.get(); 
+            if( pTV->m_dtDebut > dtTmp )
+                return pTVEx->m_pData.get();
 
             pTVEx = pTV;
         }
-                       
-        return pTV->m_pData.get();       // Non trouvé, on retourne la dernière 
+
+        return pTV->m_pData.get();       // Non trouvé, on retourne la dernière
     }
 
 	template<class T> void ListOfTimeVariationEx<T>::AddVariation(STime dtDebut, T* pData)
@@ -1112,15 +1112,15 @@ private:
     }
 
     template<class T> T* ListOfTimeVariationEx<T>::GetFirstVariationEx()
-    {                           
+    {
         if( m_LstTV.size()>0 )
-            return m_LstTV[0].m_pData.get();   
+            return m_LstTV[0].m_pData.get();
         else
             return NULL;
     }
 
 // Fonctions template de manipulations des listes des variantes temporelles
-// REMARQUES : le code des fonctions Template est ici sinon elles ne 
+// REMARQUES : le code des fonctions Template est ici sinon elles ne
 // sont pas reconnues à l'édition des liens (pas supporté par le compilo)
 
 
@@ -1134,10 +1134,10 @@ private:
 // Historique: 23/10/2008 (C.Bécarie - Tinea)
 //             Création
 //================================================================
-(   
+(
 	STime                           dtDebut,    // Heure de début de la simulation
     T                               *pData,     // Variante
-    std::deque<TimeVariationEx<T>>    *pLstTV   // Liste des variantes
+    std::deque<TimeVariationEx<T> >    *pLstTV   // Liste des variantes
 )
 {
     if(!pLstTV)
@@ -1153,24 +1153,24 @@ private:
 //================================================================
     template <class T> void EraseListOfVariationEx
 //----------------------------------------------------------------
-// Fonction  : Suppression de tous les éléments de la liste des 
+// Fonction  : Suppression de tous les éléments de la liste des
 //             variantes temporelles
 // Remarques :
 // Version du: 23/10/2008
 // Historique: 23/10/2008 (C.Bécarie - Tinea)
 //             Création
 //================================================================
-( 
-    std::deque<TimeVariationEx<T>> *pLstTV
+(
+    std::deque<TimeVariationEx<T> > *pLstTV
 )
 {
     if(!pLstTV)
         return;
-    
+
     TimeVariationEx<T>    TV;
     for(int i=0; i<(int)pLstTV->size(); i++)
     {
-        TV = pLstTV->at(i); 
+        TV = pLstTV->at(i);
         TV.m_pData.reset();
     }
 
@@ -1187,15 +1187,15 @@ private:
 //// Historique: 23/10/2008 (C.Bécarie - Tinea)
 ////             Création
 ////================================================================
-//( 
-//    std::deque<TimeVariationEx<T>> *pLstTV,
+//(
+//    std::deque<TimeVariationEx<T> > *pLstTV,
 //    System::DateTime  dtTime
 //)
 //{
-//    int                 nIndex = 0;    
+//    int                 nIndex = 0;
 //    int                 i = 0;
 //    TimeVariationEx<T>    TV;
-//    std::deque<TimeVariationEx<T>>::iterator iTV;    
+//    std::deque<TimeVariationEx<T> >::iterator iTV;
 //    T*                  pData;
 //    System::DateTime    dtTmp;
 //
@@ -1208,30 +1208,30 @@ private:
 //    if(pLstTV->size()==0)
 //        return;
 //
-//    TV = pLstTV->at(0);   
+//    TV = pLstTV->at(0);
 //    dtTmp = TV.m_dtDebut;
 //
 //    while(dtTmp < dtTime && nIndex < (int)pLstTV->size() )
-//    {        
+//    {
 //        TV = pLstTV->at(++nIndex);
 //        dtTmp = TV.m_dtDebut;
-//    }    
-//    
+//    }
+//
 //    if(nIndex < (int)pLstTV->size())
 //    {
-//        // Modification de la durée de la dernière variante afin que la nouvelle 
-//        // variante soit pris en compte dès le pas de temps courant        
+//        // Modification de la durée de la dernière variante afin que la nouvelle
+//        // variante soit pris en compte dès le pas de temps courant
 //        pData = TV.m_pData;
 //
 //        // Suppression des variantes suivantes
 //        for(i=nIndex; i<(int)pLstTV->size(); i++)
 //        {
-//            TV = pLstTV->at(i); 
+//            TV = pLstTV->at(i);
 //
 //            if(i!=nIndex)
 //                delete TV.m_pData;
-//        }  
-//        
+//        }
+//
 //        i = 0;
 //        for ( iTV = pLstTV->begin( ); iTV != pLstTV->end( ); iTV++ )
 //        {
@@ -1242,8 +1242,8 @@ private:
 //                // Ajout de la variation modifiée
 //                AddVariation(dtTime, pData, pLstTV);
 //                return;
-//            }            
-//        }        
+//            }
+//        }
 //    }
 //}
 
@@ -1328,7 +1328,7 @@ Point CalculPositionTronconInsertion(const Point & ptTronconAval1, const Point &
 Tuyau* AbsoluteToRelativePosition(Reseau * pReseau, double dbX, double dbY, double dbZ, int &nLane, double &dbRelativePosition);
 
 // retourne les indices du vecteur dont les valeurs sont <= à valueToFind
-template<class T> 
+template<class T>
 std::vector<int> FindLessEqual(std::vector<T> vectors, const T& valueToFind )
 {
     std::vector<int> returnIndices;
