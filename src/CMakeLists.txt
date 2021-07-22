@@ -264,7 +264,7 @@ target_link_libraries( SymuFlow SymuCore)
 
 
 target_link_libraries( SymuFlow ${Boost_LIBRARIES})
-
+include_directories(${Boost_INCLUDE_DIRS})
 
 # XQilla
 target_link_libraries( SymuFlow ${XQILLA_LIBRARIES})
@@ -277,14 +277,14 @@ target_link_libraries( SymuFlow ${RAPIDJSON_LIBRARY})
 
 # Python
 target_link_libraries( SymuFlow ${Python3_LIBRARIES})
+target_include_directories( SymuFlow PUBLIC ${Python3_INCLUDE_DIRS})
 
 
 # Visible
 target_include_directories(SymuFlow PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-    "$<INSTALL_INTERFACE:include/SymuFlow;include/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}>"
+    $<INSTALL_INTERFACE:include/SymuFlow>
 )
-
 
 install(TARGETS SymuFlow
         EXPORT SymuFlowTarget
