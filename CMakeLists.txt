@@ -86,7 +86,7 @@ else()
 endif()
 
 # Python Search
-find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+find_package(Python3 3.9 COMPONENTS Interpreter Development REQUIRED)
 
 if(Python3_FOUND)
     include_directories(${Python3_INCLUDE_DIRS})
