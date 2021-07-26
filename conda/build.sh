@@ -18,7 +18,8 @@ fi
 cmake .. \
       -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
       -DCMAKE_PREFIX_PATH="${PREFIX}" \
-      -DPython3_FIND_STRATEGY=LOCATION
+      -DPython3_FIND_STRATEGY=LOCATION \
+      -DCMAKE_BUILD_TYPE=Release
 
 make -j${CPU_COUNT}
 make install

@@ -1,0 +1,9 @@
+set(DERIVEDCLASS_HEADERS
+  GLOSA.h)
+
+set(DERIVEDCLASS_SRC
+  GLOSA.cpp)
+
+appendingfiles(SYMUFLOW_SRC DERIVEDCLASS_SRC)
+
+install(FILES ${DERIVEDCLASS_HEADERS} DESTINATION include/SymuFlow/ITS/Applications/DerivedClass)
