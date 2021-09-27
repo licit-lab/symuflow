@@ -2423,15 +2423,8 @@ SYMUBRUIT_EXPORT char* SYMUBRUIT_CDECL SymGetRemainingPathInfoJSON(int vehicleId
 ///<param name="nIdVeh">Vehicle ID</param>
 ///<param name="dqLinks">Links of route</param>
 ///<returns>0 if succeed else negative </returns>
-SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymAlterRoute(int nIdVeh, char*  links[] , int iLength)
+SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymAlterRoute(int nIdVeh, std::deque<string> dqLinks)
 {
-    std::deque<string> dqLinks;
-    for( int i = 0; i <iLength; ++i)
-    {
-         string strlinkId = links[i];
-         dqLinks.push_back(strlinkId);
-    }
-
     Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);    
     // No load network, error output
     if(!pReseau)
@@ -2441,6 +2434,7 @@ SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymAlterRoute(int nIdVeh, char*  links[] , 
 
 	return pReseau->AlterRoute(nIdVeh, dqLinks);
 }
+
 
 SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymSetRoutes(char* originId, char* destinationId, char* typeVeh, char** links[] , double coeffs[], int iLength)
 {
@@ -4554,5 +4548,128 @@ extern "C"
 		std::string strStopID = std::string(StopID);
 
 		return SymGetPTStopDuration(strStopID);
+    }
+
+    /**
+     * \brief   Alter route function 
+     *
+     * \details This function modifies the remaining route of a vehicle
+     *
+     * \note    The first link of the new route must be connected to the current link of the vehicle or the new route and the remaining route must have a common link
+     *
+     * \param[in]     nIVeh     ID of the vehicle to reroute
+     * \param[in]     links     New route (list of links ID)
+     *
+     * \return                  The error return code of the function.
+     *
+     * \retval        0         The function is successfully executed
+     * \retval        -1        No network loaded
+     * \retval        -2        The vehicle doesn't exist
+     * \retval        -3        The new route is empty
+     * \retval        -4        A link of the new route does not belong to the simulated network
+     * \retval        -5        The new route is incorrect (some links are not connected).
+     * \retval        -6        The destination of the new route is diffrerent from the original
+     * \retval        -7        The new route cannot be reached by the vehicle
+     */
+
+    DECLDIR int  SymAlterRouteEx(int nIdVeh, char*  links)
+    {
+        std::deque<std::string> linkNames;
+		std::string slinks = std::string(links);
+
+		linkNames = SystemUtil::split(slinks, ' ');
+
+        return SymAlterRoute(nIdVeh, linkNames);
+
+    }
+
+    // Access simulated vehicle informations at the end of the current time step
+
+    // Acceleration
+    DECLDIR double SymGetVehicleAcc(int vehid)
+    {
+        Reseau* pNet = theApp.GetNetwork(DEFAULT_NETWORK_ID);
+        if (!pNet)
+            return -1001.;
+
+        boost::shared_ptr<Vehicule> pV = pNet->GetVehiculeFromID(vehid);
+        if (pV==nullptr)
+            return -1002.;
+
+        return pV->GetAcc(0);
+    }
+
+    // Speed
+    DECLDIR double SymGetVehicleSpeed(int vehid)
+    {
+        Reseau* pNet = theApp.GetNetwork(DEFAULT_NETWORK_ID);
+        if (!pNet)
+            return -1001.;
+
+        boost::shared_ptr<Vehicule> pV = pNet->GetVehiculeFromID(vehid);
+        if (pV==nullptr)
+            return -1002.;
+
+        return pV->GetVit(0);
+    }
+
+    // Link
+    DECLDIR char* SymGetVehicleLink(int vehid)
+    {
+        Reseau* pNet = theApp.GetNetwork(DEFAULT_NETWORK_ID);
+        if (!pNet)
+            return nullptr;
+
+        boost::shared_ptr<Vehicule> pV = pNet->GetVehiculeFromID(vehid);
+        if (pV==nullptr)
+            return nullptr;
+
+        if (!pV->GetLink(0))
+            return nullptr;
+
+        std::string sLink = pV->GetLink(0)->GetLabel();
+
+        char* retValue = new char[sLink.length() + 1];
+        #ifdef WIN32
+                strcpy_s(retValue, sLink.length() + 1, sLink.c_str());
+        #else
+                strcpy(retValue, sLink.c_str());
+        #endif
+        
+		return retValue;
+    }
+
+    // Absolute position X
+    DECLDIR double SymGetVehicleX(int vehid)
+    {
+        Reseau* pNet = theApp.GetNetwork(DEFAULT_NETWORK_ID);
+        if (!pNet)
+            return -1001.;
+
+        boost::shared_ptr<Vehicule> pV = pNet->GetVehiculeFromID(vehid);
+        if (pV==nullptr)
+            return -1002.;
+
+        double x,y,z;
+        pV->CalculXYZ(x,y,z);
+
+        return x;
+    }
+
+    // Absolute position Y
+    DECLDIR double SymGetVehicleY(int vehid)
+    {
+        Reseau* pNet = theApp.GetNetwork(DEFAULT_NETWORK_ID);
+        if (!pNet)
+            return -1001.;
+
+        boost::shared_ptr<Vehicule> pV = pNet->GetVehiculeFromID(vehid);
+        if (pV==nullptr)
+            return -1002.;
+
+        double x,y,z;
+        pV->CalculXYZ(x,y,z);
+
+        return y;
     }
 }
