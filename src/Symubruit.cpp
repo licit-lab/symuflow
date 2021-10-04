@@ -31,6 +31,7 @@
 #include "Affectation.h"
 #include "Parking.h"
 #include "TronconDestination.h"
+#include "voie.h"
 
 #pragma warning(disable : 4003)
 #include <rapidjson/document.h>
@@ -4639,8 +4640,8 @@ extern "C"
 		return retValue;
     }
 
-    // Absolute position X
-    DECLDIR double SymGetVehicleX(int vehid)
+    // Abscissa of the vehicle
+    DECLDIR double SymGetVehicleAbscissa(int vehid)
     {
         Reseau* pNet = theApp.GetNetwork(DEFAULT_NETWORK_ID);
         if (!pNet)
@@ -4656,8 +4657,8 @@ extern "C"
         return x;
     }
 
-    // Absolute position Y
-    DECLDIR double SymGetVehicleY(int vehid)
+    // Ordinate of the vehicle
+    DECLDIR double SymGetVehicleOrdinate(int vehid)
     {
         Reseau* pNet = theApp.GetNetwork(DEFAULT_NETWORK_ID);
         if (!pNet)
@@ -4671,5 +4672,64 @@ extern "C"
         pV->CalculXYZ(x,y,z);
 
         return y;
+    }
+
+    // Lane number of the vehicle
+    DECLDIR int SymGetVehicleLane(int vehid)
+    {
+        Reseau* pNet = theApp.GetNetwork(DEFAULT_NETWORK_ID);
+        if (!pNet)
+            return -1001.;
+
+        boost::shared_ptr<Vehicule> pV = pNet->GetVehiculeFromID(vehid);
+        if (pV==nullptr)
+            return -1002.;
+
+        if (pV->GetVoie(0)==nullptr)
+            return -1003.;
+
+        return pV->GetVoie(0)->GetNum()+1;
+    }
+
+    // Relative position on the current link of the vehicle
+    DECLDIR double SymGetVehicleRelativePositionOnLink(int vehid)
+    {
+        Reseau* pNet = theApp.GetNetwork(DEFAULT_NETWORK_ID);
+        if (!pNet)
+            return -1001.;
+
+        boost::shared_ptr<Vehicule> pV = pNet->GetVehiculeFromID(vehid);
+        if (pV==nullptr)
+            return -1002.;
+
+        return pV->GetPos(0);
+    }
+
+    // Travel distance of the vehicle from the origin
+    DECLDIR double SymGetVehicleTravelDistance(int vehid)
+    {
+        Reseau* pNet = theApp.GetNetwork(DEFAULT_NETWORK_ID);
+        if (!pNet)
+            return -1001.;
+
+        boost::shared_ptr<Vehicule> pV = pNet->GetVehiculeFromID(vehid);
+        if (pV==nullptr)
+            return -1002.;
+
+        return pV->GetDstCumulee();
+    }
+
+    // Travel time of the vehicle since entering the network
+    DECLDIR double SymGetVehicleTravelTime(int vehid)
+    {
+        Reseau* pNet = theApp.GetNetwork(DEFAULT_NETWORK_ID);
+        if (!pNet)
+            return -1001.;
+
+        boost::shared_ptr<Vehicule> pV = pNet->GetVehiculeFromID(vehid);
+        if (pV==nullptr)
+            return -1002.;
+
+        return (pNet->GetInstSim()*pNet->GetTimeStep()) - pV->GetHeureEntree();
     }
 }
