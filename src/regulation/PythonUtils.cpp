@@ -17,7 +17,6 @@
 #include "../Logger.h"
 #include "../sensors/PonctualSensor.h"
 #include "../sensors/SensorsManager.h"
-#include "../loi_emission.h"
 #include "../arret.h"
 #include "../usage/Trip.h"
 #ifdef USE_SYMUCOM
@@ -65,37 +64,25 @@ XERCES_CPP_NAMESPACE_USE
 
 struct TronconWrap : Troncon, wrapper<Troncon>
 {
-    bool InitSimulation(bool bAcou, bool bSirane, std::string strName)
-    { return this->get_override("InitSimulation")(bAcou, bSirane, strName); }
     void ComputeTraffic(double nInstant)
     { this->get_override("ComputeTraffic")(nInstant); }
     void ComputeTrafficEx(double nInstant)
     { this->get_override("ComputeTrafficEx")(nInstant); }
     void TrafficOutput()
     { this->get_override("TrafficOutput")(); }
-    void EmissionOutput()
-    { this->get_override("EmissionOutput")(); }
-    void InitAcousticVariables()
-    { this->get_override("InitAcousticVariables")(); }
 
 };
 
 struct TuyauWrap : Tuyau, wrapper<Tuyau>
 {
-    bool InitSimulation(bool bAcou, bool bSirane, std::string strName)
-    { return this->get_override("InitSimulation")(bAcou, bSirane, strName); }
     void ComputeTraffic(double nInstant)
     { this->get_override("ComputeTraffic")(nInstant); }
     void TrafficOutput()
     { this->get_override("TrafficOutput")(); }
-    void EmissionOutput()
-    { this->get_override("EmissionOutput")(); }
     void InitVarSimu()
     { this->get_override("InitVarSimu")(); }
     bool Segmentation()
     { return this->get_override("Segmentation")(); }
-    void ComputeNoise(Loi_emission* Loi)
-    { this->get_override("ComputeNoise")(Loi); }
     double ComputeCost(double dbInst, TypeVehicule    *pTypeVeh, bool bUsePenalisation)
     { return this->get_override("ComputeCost")(dbInst, pTypeVeh, bUsePenalisation); }
     char GetLanesManagement()
@@ -116,28 +103,20 @@ struct StaticElementWrap : StaticElement, wrapper<StaticElement>
 
 struct VoieWrap : Voie, wrapper<Voie>
 {
-    bool InitSimulation(bool bAcou, bool bSirane, std::string strName)
-    { return this->get_override("InitSimulation")(bAcou, bSirane, strName); }
     void ComputeTraffic(double nInstant)
     { this->get_override("ComputeTraffic")(nInstant); }
     void ComputeTrafficEx(double nInstant)
     { this->get_override("ComputeTrafficEx")(nInstant); }
     void TrafficOutput()
     { this->get_override("TrafficOutput")(); }
-     void InitAcousticVariables()
-    { this->get_override("InitAcousticVariables")(); }
     void InitVarSimu()
     { this->get_override("InitVarSimu")(); }
     void EndComputeTraffic(double dbInstant)
     { this->get_override("EndComputeTraffic")(dbInstant); }
-    void ComputeNoise(Loi_emission* Loi)
-    { this->get_override("ComputeNoise")(Loi); }
     void ComputeOffer(double dbInstant)
     { this->get_override("ComputeOffer")(dbInstant); }
     void ComputeDemand(double dbInstSimu, double dbInstant)
     { this->get_override("ComputeDemand")(dbInstSimu, dbInstant); }
-    bool Discretisation(int nNbVoie)
-    { return this->get_override("Discretisation")(nNbVoie); }
 };
 
 

@@ -445,17 +445,6 @@ XERCES_CPP_NAMESPACE::DOMDocument * XMLUtil::LoadDocument(const std::string & sP
     // reset document pool
     m_parser->resetDocumentPool();
 
-	if (xsdFile.length() > 0)
-	{
-		Grammar* grammar;
-		grammar = m_parser->loadGrammar(XS(xsdFile.c_str()), Grammar::SchemaGrammarType, true);
-		if (grammar == NULL)
-		{
-			doc = NULL;
-			return NULL;
-		}
-	}
-
     doc = m_parser->parseURI(XS(sPath.c_str()));
 
 	if (errorHandler.getErrorCount() > 0)

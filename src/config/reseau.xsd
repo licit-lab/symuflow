@@ -1609,32 +1609,6 @@ Si ce code n'est pas défini (ainsi que le code de restitution - attribut EPSGou
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
-      <xsd:element minOccurs="0" maxOccurs="1" name="SOURCES_ACOUSTIQUES">
-        <xsd:annotation>
-          <xsd:documentation>Liste des sources acoustiques du véhicule</xsd:documentation>
-        </xsd:annotation>
-        <xsd:complexType>
-          <xsd:sequence>
-            <xsd:element minOccurs="1" maxOccurs="unbounded" name="SOURCE_ACOUSTIQUE">
-              <xsd:annotation>
-                <xsd:documentation>Description d'une source acoustique du type de véhicule parent</xsd:documentation>
-              </xsd:annotation>
-              <xsd:complexType>
-                <xsd:attribute default="0" name="position" type="xsd:float" use="optional">
-                  <xsd:annotation>
-                    <xsd:documentation>Position de la source acoustique du véhicule (l'origine est l'avant du véhicule)</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:attribute>
-                <xsd:attribute name="id_DB_LoiEmission" type="xsd:string" use="required">
-                  <xsd:annotation>
-                    <xsd:documentation>Identifiant base de donnée des lois d'émission de la source acoustique du type de véhicule</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:attribute>
-              </xsd:complexType>
-            </xsd:element>
-          </xsd:sequence>
-        </xsd:complexType>
-      </xsd:element>
     </xsd:all>
     <xsd:attribute name="id" type="xsd:string" use="required">
       <xsd:annotation>

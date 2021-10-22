@@ -60,10 +60,7 @@ set(ROOT_HEADERS
   ControleurDeFeux.h
   DLL_TrafficState.h
   DiagFonda.h
-  DocAcoustique.h
   DocTrafic.h
-  EVEDocAcoustique.h
-  EVEDocTrafic.h
   GMLDocTrafic.h
   GTFSExporter.h
   JSONDocTrafic.h
@@ -103,7 +100,6 @@ set(ROOT_HEADERS
   SystemUtil.h
   TempsCritique.h
   TimeUtil.h
-  TraceDocAcoustique.h
   TraceDocTrafic.h
   TrafficState.h
   TravelTimesOutputManager.h
@@ -112,10 +108,7 @@ set(ROOT_HEADERS
   TronconOrigine.h
   TuyauMeso.h
   VehicleTypePenalty.h
-  XMLDocAcoustique.h
-  XMLDocEmissionsAtmo.h
   XMLDocItineraire.h
-  XMLDocSirane.h
   XMLDocTrafic.h
   XMLReaderTrafic.h
   ZoneDeTerminaison.h
@@ -127,7 +120,6 @@ set(ROOT_HEADERS
   feux.h
   frontiere.h
   giratoire.h
-  loi_emission.h
   repartiteur.h
   reseau.h
   resource.h
@@ -154,10 +146,7 @@ set(ROOT_SRC
   ControlZone.cpp
   ControleurDeFeux.cpp
   DiagFonda.cpp
-  DocAcoustique.cpp
   DocTrafic.cpp
-  EVEDocAcoustique.cpp
-  EVEDocTrafic.cpp
   GMLDocTrafic.cpp
   GTFSExporter.cpp
   JSONDocTrafic.cpp
@@ -192,7 +181,6 @@ set(ROOT_SRC
   SystemUtil.cpp
   TempsCritique.cpp
   TimeUtil.cpp
-  TraceDocAcoustique.cpp
   TraceDocTrafic.cpp
   TrafficState.cpp
   TravelTimesOutputManager.cpp
@@ -201,10 +189,7 @@ set(ROOT_SRC
   TronconOrigine.cpp
   TuyauMeso.cpp
   VehicleTypePenalty.cpp
-  XMLDocAcoustique.cpp
-  XMLDocEmissionsAtmo.cpp
   XMLDocItineraire.cpp
-  XMLDocSirane.cpp
   XMLDocTrafic.cpp
   XMLReaderTrafic.cpp
   ZoneDeTerminaison.cpp
@@ -216,7 +201,6 @@ set(ROOT_SRC
   feux.cpp
   frontiere.cpp
   giratoire.cpp
-  loi_emission.cpp
   repartiteur.cpp
   reseau.cpp
   sortie.cpp

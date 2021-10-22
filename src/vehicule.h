@@ -20,7 +20,6 @@
 class Voie;
 class VoieMicro;
 class TuyauMicro;
-class Loi_emission;
 class Segment;
 class SensorsManagers;
 class CDiagrammeFondamental;
@@ -51,19 +50,6 @@ struct PlageAcceleration
 {
     double  dbVitSup;       // Vitesse supérieure de la plage d'accélération
     double  dbAcc;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-friend class boost::serialization::access;
-template<class Archive>
-void serialize(Archive & ar, const unsigned int version);
-};
-
-struct SrcAcoustique            // Structure de description d'une source acoustique d'un type de véhicule
-{
-    double      dbPosition;     // Position de la source (par rapport à l'avant du véhicule)
-    std::string strIDDataBase;  // Identifiant base de données de la source (colonne TYPE)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Sérialisation
@@ -129,8 +115,6 @@ protected:
 
     std::deque<PlageAcceleration> m_LstPlagesAcceleration;     // Liste ordonnées des plages d'accélération
 
-    std::deque<SrcAcoustique>     m_LstSrcAcoustiques;          // Liste des sources acoustiques
-
     std::map<std::string, double>               m_ScriptedLawsCoeffs;   // Coefficients d'assignation des lois de poursuites scriptées
     std::map<std::string, boost::python::dict>  m_ScriptedLawsParams;   // Paramètres des lois de poursuites scriptées
 
@@ -154,9 +138,6 @@ public:
 
     double                  GetDecelerationEcartType(){return m_dbDecelerationEcartType;}
     void                    SetDecelerationEcartType(double dbDecET){m_dbDecelerationEcartType = dbDecET;}
-
-    void                            AddSrcAcoustiques(double dbPos, char *strIDDB);
-    std::deque<SrcAcoustique>       GetLstSrcAcoustiques(){return m_LstSrcAcoustiques;}
 
     double                  GetVx(){return m_dbVx;}
     double                  GetKx(){return m_dbKx;}
@@ -350,8 +331,6 @@ protected:
     bool        m_bChgtVoie;            // Indique si le véhicule a changé de voie pour le pas de temps considéré
 
     std::deque<bool> m_bVoiesOK;        // Indique pour chaque voie du tronçon si elle est possible
-
-    double*     m_pWEmission;           // tableau Nb_Octaves+Niv_global) contenant les puissances acoustiques des valeurs d'emission acoustique du véhicule - en Watt
 
     double      m_dbHeureEntree;         // Heure d'entrée du véhicule sur le réseau ( = heure de création, même si le véhicule est en attente au niveau de l'entrée)
 
@@ -564,20 +543,6 @@ virtual Voie*       CalculNextVoie(Voie*    pVoie, double  dbInstant);
 virtual void        CalculVoiesPossibles(double dbInstant);
 
     Tuyau*       CalculNextTuyau(Tuyau*    pTuyau, double  dbInstant);
-
-    void        SortieEmission(
-                                );
-    void        CalculEmission(
-                                Loi_emission  * Loi,
-                                std::string     strType,
-                                std::string     typ_rev
-                                );
-
-    Segment*    GetCellAcoustique(double dbPos);
-    Segment*    GetCellSirane();
-
-
-    double*     GetPuissanceAcoustique(){return m_pWEmission;}
 
     double      GetDstParcourueEx();
 

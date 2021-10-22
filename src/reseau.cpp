@@ -5,13 +5,11 @@
 #include "repartiteur.h"
 #include "sortie.h"
 #include "entree.h"
-#include "XMLDocEmissionsAtmo.h"
 #include "divergent.h"
 #include "CarrefourAFeuxEx.h"
 #include "ControleurDeFeux.h"
 #include "MergingObject.h"
 #include "TraceDocTrafic.h"
-#include "TraceDocAcoustique.h"
 #include "XMLReaderTrafic.h"
 #include "RandManager.h"
 #include "Parking.h"
@@ -27,10 +25,7 @@
 #include "convergent.h"
 #include "SystemUtil.h"
 #include "XMLDocTrafic.h"
-#include "EVEDocAcoustique.h"
 #include "voie.h"
-#include "loi_emission.h"
-#include "XMLDocSirane.h"
 #include "Segment.h"
 #include "arret.h"
 #include "CSVOutputWriter.h"
@@ -244,8 +239,6 @@ void Reseau::Initialize()
     m_pLogger = new Logger("", true, Logger::Info);
     m_pLoadingLogger = NULL;
 
-    Loi_emis = NULL;
-
     m_bFichierSAS = false;
 
     m_nLastVehicleID = 0;
@@ -278,7 +271,6 @@ void Reseau::Initialize()
     m_bLoiPoursuiteOld = false;         // Par défaut, nouvelle loi de poursuite
 
     m_bInitSimuTrafic = false;
-    m_bInitSimuEmissions = false;
 
     m_strTitre = "";
 
@@ -295,16 +287,9 @@ void Reseau::Initialize()
 
     m_pModuleAffectation = NULL;
 
-    m_bAcousCell = false;
-    m_bAcousSrcs = false;
-
     m_XMLDocData = NULL;
 
-
-    m_XmlDocAcoustique = NULL;
-    m_XmlDocAtmo = NULL;
     m_XmlReaderTrafic = NULL;
-    m_XmlDocSirane = NULL;
     m_CSVOutputWriter = NULL;
     m_pTravelTimesOutputManager = NULL;
     m_RobustPointsBackupFile = NULL;
@@ -316,9 +301,6 @@ void Reseau::Initialize()
 
     m_bDepassement = true;
     m_bTraversees = true;
-
-    m_dbDebutPeriodeSirane = 0.0;
-    m_bExtensionBarycentresSirane = false;
 
     m_bRelancerCalculRepartiteur = false;
 
@@ -428,8 +410,6 @@ Reseau::~Reseau()
     if(IsInitSimuTrafic())
         FinSimuTrafic();
 
-    FinSimuEmissions( IsSimuAcoustique(), IsSimuAir(), IsSimuSirane());
-
     vidange_listes() ;
 
     if(m_pModuleAffectation)
@@ -437,9 +417,6 @@ Reseau::~Reseau()
         delete(m_pModuleAffectation);
         m_pModuleAffectation = NULL;
     }
-
-    //if(Loi_emis)
-      //  delete Loi_emis;      // efface la classe loi d'emission
 
     if(m_pGestionsCapteur)
     {
@@ -735,33 +712,6 @@ void Reseau::vidange_listes(void)
                 return false;
             }
         }
-
-        // Simulation des émissions acoustiques et:ou atmosphériques
-        if (m_bSimuAcoustique || m_bSimuAir || m_bSimuSirane)
-        {
-            log() << "Emissions simulation initialization..." << std::endl;
-
-            if (InitSimuEmissions(m_bSimuAcoustique, m_bSimuAir, m_bSimuSirane))
-            {
-                log() << "Running emissions simulation..." << std::endl;
-
-                while (!SimuEmissions(m_bSimuAcoustique, m_bSimuAir, m_bSimuSirane))
-                {
-                    if (m_XmlDocAcoustique)
-                    {
-                        m_XmlDocAcoustique->ReleaseLastInstant();
-                    }
-                }
-
-                log() << "Emissions simulation termination..." << std::endl;
-
-                FinSimuEmissions(m_bSimuAcoustique, m_bSimuAir, m_bSimuSirane);
-            }
-            else
-            {
-                return false;
-            }
-        }
     }
 
     log()<<"Execution finished"<<std::endl;
@@ -957,8 +907,6 @@ bool Reseau::InitSimuTraficMeso()
     //initialisation du reseau
     InitLogFicSimulation();
 
-
-
     // Récupération de la version de la dll
     string ssVer = SystemUtil::GetFileVersion();
 
@@ -1016,7 +964,7 @@ bool Reseau::InitSimuTraficMeso()
         ssFile = ssFile + "_" + name + "_traf" + GetSuffixOutputFiles() + ".xml";
         bool bEnableXML = (m_SymMode == Reseau::SYM_MODE_STEP_XML) || (m_SymMode == Reseau::SYM_MODE_FULL) || IsXmlOutput();
         TraceDocTrafic * docTrafic = new TraceDocTrafic(this, bEnableXML, IsXmlOutput(), m_bDebug, m_bTraceStocks, m_bSortieLight, m_bSortieRegime, bEnableXML?m_pXMLUtil->CreateXMLDocument(XS("OUT")):NULL,
-            m_SymMode == Reseau::SYM_MODE_STEP_EVE, m_bGMLOutput, m_SymMode == Reseau::SYM_MODE_STEP_JSON);
+            m_bGMLOutput, m_SymMode == Reseau::SYM_MODE_STEP_JSON);
 
         docTrafic->Init(ssFile, ssVer, dtDeb, dtFin, dbPerAgrCpt, m_XMLDocData, uiInit, m_SimulationID, m_TraficID, m_ReseauID, GetBoundingRect(), NULL, m_pCoordTransf, !Liste_ControleursDeFeux.empty(), GetGestionsCapteur());
         itXmlDocTrafic->m_pData.reset(docTrafic);
@@ -1172,14 +1120,6 @@ bool Reseau::InitSimuTraficMeso()
   std::deque <Tuyau*>::iterator tdebut = m_LstTuyaux.begin();
   std::deque <Tuyau*>::iterator tfin = m_LstTuyaux.end();
 
-  for (tcourant=tdebut;tcourant!=tfin;++tcourant)
-   {
-     if( !(*tcourant)->InitSimulation(false,false,"") )
-     {
-         log()<<std::endl<<" Problem detected for link "<<(*tcourant)->GetLabel();
-         bOk = false;
-     }
-   }
 
     // Initialisation des connexions définies par l'utilisateur
     std::deque<Connexion*>::iterator itCnx;
@@ -1353,10 +1293,6 @@ bool Reseau::InitSimuTraficMeso()
         //GetXmlDocTrafic()->AddVehicule(pVeh->GetID(), "", ssType, pVeh->GetType()->GetKx(), pVeh->GetVitMax(), pVeh->GetType()->GetW(), "", pVeh->GetDestination()?pVeh->GetDestination()->GetDestinationID():"", 0,  "", pVeh->IsAgressif());
     }
 
-    // TEST.................................
-    //GenReseauCirculationFile("ReseauCirculation.xml");
-    //......................................
-
     // Déchargement du fichier d'entrée (sauf en mode d'affectation convergente)
     // Et sauf si plusieurs réplications ! on ne le ferme qu'à la dernière réplication
     if (m_XMLDocData && (!m_pModuleAffectation || !m_pModuleAffectation->IsConvergent()) && bLastReplication)
@@ -1389,249 +1325,6 @@ bool Reseau::InitSimuTraficMeso()
         SerializeUtil::Load(this, (char*)m_strFileToLoadState.c_str());
         log() << std::endl << "SymuVia loaded from " << m_strFileToLoadState << std::endl;
     }
-
-    return true;
-}
-
-
-//================================================================
-    bool Reseau::InitSimuEmissions
-//----------------------------------------------------------------
-// Fonction  : Initailsiation de la simulation acoustique
-// Version du: 13/07/2007
-// Historique: 13/07/2007 (C.Bécarie - Tinea)
-//             Création
-//================================================================
-(
-    bool bAcoustic,
-    bool bAir,
-    bool bSirane,
-    bool bOnlyCells /* = false */   // = vrai si uniquement les cellules acoustiques sont calculées
- )
-{
-    bool  bOk;
-    bOk = true;
-
-    InitLogFicSimulation();
-
-    if(bAcoustic)
-    {
-        // Initialisation de l'objet LoiEmission
-        Loi_emis= new Loi_emission(this);
-        if(Loi_emis)
-            if(!Loi_emis->LoadDatabase())
-                return false;
-    }
-
-    // Initialisation des objets XML en entrée
-    std::string ssFile = m_sPrefixOutputFiles;
-    // remarque : seule la première plage temporelle est traitée... à reprendre si on veut traiter l'ensemble des plages ?
-    if(m_extractionRange.size() > 1)
-    {
-        log()<< "The emissions simulation on multiple time frames in not implemented. Only the first time frame will be processed..."<<std::endl;
-    }
-    std::string name = (*m_extractionRange.begin())->m_ID;
-    name.erase(  std::remove( name.begin(),  name.end(), ':') ,name.end());
-    ssFile = ssFile + "_" + name + "_traf" + m_sSuffixOutputFiles + ".xml";
-
-    m_XmlReaderTrafic = new XMLReaderTrafic(m_pLogger);
-
-    std::string sTimeET;
-
-    if ((m_SymMode == Reseau::SYM_MODE_FULL) && (!bOnlyCells))
-    {
-        log()<< "XML input file initialization..."<<std::endl;
-
-        // Vérification de l'existence du fichier XML de trafic
-        if (!SystemUtil::FileExists(ssFile))
-        {
-            delete(Loi_emis);
-            Loi_emis = NULL;
-            log() << Logger::Error << "ERROR : The traffic XML file was not found ( "<< ssFile <<" )" <<std::endl;
-            log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-            return false;
-        }
-
-        // Initialisation des curseurs de lecture du fichier XML de trafic
-        if(!m_XmlReaderTrafic->Init(ssFile, sTimeET))
-        {
-            delete(Loi_emis);
-            Loi_emis = NULL;
-            return false;
-        }
-        log()<< "ok" << std::endl;
-    }
-
-    if(bAcoustic)
-    {
-        switch(m_SymMode)
-        {
-        case Reseau::SYM_MODE_FULL:
-        case Reseau::SYM_MODE_STEP_XML:
-            {
-                // Initialisation des objets XML en sortie
-                log()<< "Output XML acoustic file initialization...";
-                std::string ssFileOut = m_sPrefixOutputFiles;
-
-                if(!bOnlyCells)
-                    ssFileOut += "_emi" + m_sSuffixOutputFiles + ".xml";
-                else
-                    ssFileOut += "_cell" + m_sSuffixOutputFiles + ".xml";
-
-                std::string ssVersionDB = Loi_emis->GetVersion();
-
-                // Récupération de la version de la dll
-                string ssVer = SystemUtil::GetFileVersion();
-
-                STime dtDebut(hd, md, sd);
-
-                XMLDocAcoustique * XmlDocAcoustique;
-                m_XmlDocAcoustique = new XMLDocAcoustique(this, m_pXMLUtil->CreateXMLDocument(XS("SIMULATION")));
-                XmlDocAcoustique = (XMLDocAcoustique *)m_XmlDocAcoustique;
-                XmlDocAcoustique->setSave(m_bXmlOutput);
-
-                SDate ssDate(m_dtDateSimulation.GetDay(), m_dtDateSimulation.GetMonth(), m_dtDateSimulation.GetYear());
-
-                XmlDocAcoustique->Init(ssFileOut, dtDebut, ssVer, sTimeET, ssVersionDB, m_strTitre, ssDate.ToString());
-            }
-            break;
-        case Reseau::SYM_MODE_STEP_EVE:
-            if (IsXmlOutput())
-            {
-                // Initialisation des objets XML en sortie
-                log()<< "Output XML acoustic file initialization...";
-                std::string ssFileOut = m_sPrefixOutputFiles;
-
-                if(!bOnlyCells)
-                    ssFileOut += "_emi" + m_sSuffixOutputFiles + ".xml";
-                else
-                    ssFileOut += "_cell" + m_sSuffixOutputFiles + ".xml";
-
-                std::string ssVersionDB = Loi_emis->GetVersion();
-
-                // Récupération de la version de la dll
-                string ssVer = SystemUtil::GetFileVersion();
-
-                STime dtDebut(hd, md, sd);
-
-                SDate ssDate(m_dtDateSimulation.GetDay(), m_dtDateSimulation.GetMonth(), m_dtDateSimulation.GetYear());
-
-                TraceDocAcoustique * tDocAcoustique;
-                m_XmlDocAcoustique = new TraceDocAcoustique(this, m_pXMLUtil->CreateXMLDocument(XS("SIMULATION")));
-                tDocAcoustique = (TraceDocAcoustique*)m_XmlDocAcoustique;
-                tDocAcoustique->setSave(true);
-                tDocAcoustique->Init(ssFileOut, dtDebut, ssVer, sTimeET, ssVersionDB, m_strTitre, ssDate.ToString());
-            }
-            else
-            {
-                EVEDocAcoustique * EveDocAcoustique;
-                m_XmlDocAcoustique = new EVEDocAcoustique();
-                EveDocAcoustique = (EVEDocAcoustique*)m_XmlDocAcoustique;
-            }
-            break;
-            case Reseau::SYM_MODE_STEP_JSON:
-                break;
-        }
-
-    }
-
-    if(bAir)
-    {
-        // Initialisation des objets XML en sortie
-        log()<< "Output atmospheric emissions XML file initialization...";
-        std::string ssFileOut = m_sPrefixOutputFiles;
-
-        ssFileOut += "_atm" + m_sSuffixOutputFiles + ".xml";
-
-        // Récupération de la version de la dll
-        string ssVer = SystemUtil::GetFileVersion();
-
-        STime dtDebut(hd, md, sd);
-
-        m_XmlDocAtmo = new XMLDocEmissionsAtmo(this, m_pXMLUtil->CreateXMLDocument(XS("SIMULATION")));
-
-        SDate ssDate(m_dtDateSimulation.GetDay(), m_dtDateSimulation.GetMonth(), m_dtDateSimulation.GetYear());
-
-        m_XmlDocAtmo->Init(ssFileOut, dtDebut, ssVer, "", "", m_strTitre, ssDate.ToString().c_str());
-
-        // Initialisation des compteurs
-        m_dbCptCumCO2 = 0;
-        m_dbCptCumNOx = 0;
-        m_dbCptCumPM = 0;
-    }
-
-    if(bSirane)
-    {
-        // Initialisation des objets XML en sortie
-        log()<< "Output Sirane XML file initialization...";
-        std::string ssFileOut = m_sPrefixOutputFiles;
-
-        ssFileOut += "_cit" + m_sSuffixOutputFiles + ".xml";
-
-        // Récupération de la version de la dll
-        string ssVer = SystemUtil::GetFileVersion();
-
-        STime dtDebut(hd, md, sd);
-
-        m_XmlDocSirane = new XMLDocSirane(this, m_pXMLUtil->CreateXMLDocument(XS("FeatureCollection"), XS("ogr")));
-
-        SDate ssDate(m_dtDateSimulation.GetDay(), m_dtDateSimulation.GetMonth(), m_dtDateSimulation.GetYear());
-
-        m_XmlDocSirane->Init(ssFileOut, GetBoundingRect());
-    }
-    log()<< "ok" << std::endl;
-
-    m_dbInstSimu = 0;
-    m_dbInstSimuMeso= DBL_MAX;
-
-    //parcours des tuyaux
-    std::deque <Tuyau*>::iterator tcourant;
-    std::deque <Tuyau*>::iterator tdebut = m_LstTuyaux.begin();
-    std::deque <Tuyau*>::iterator tfin = m_LstTuyaux.end();
-
-    for (tcourant=tdebut;tcourant!=tfin;tcourant++)
-    {
-     if( !(*tcourant)->InitSimulation(bAcoustic,bSirane,"") )
-     {
-         log()<<std::endl<<" Problem detected for link "<<(*tcourant)->GetLabel();
-         bOk = false;
-     }
-    }
-
-    if(bSirane)
-    {
-        //parcours des briques de connexion
-        BriqueDeConnexion* pBrique;
-        for(size_t briqueIdx = 0; briqueIdx < Liste_carrefoursAFeux.size(); briqueIdx++)
-        {
-            pBrique = Liste_carrefoursAFeux[briqueIdx];
-            pBrique->InitSimulationSirane();
-        }
-        for(size_t briqueIdx = 0; briqueIdx < Liste_giratoires.size(); briqueIdx++)
-        {
-            pBrique = Liste_giratoires[briqueIdx];
-            pBrique->InitSimulationSirane();
-        }
-    }
-
-
-    if( bOk)
-        log()<<" ok"<<std::endl;
-    else
-        log()<<std::endl;
-
-    m_nInstSim = 0;
-
-    m_nLastIdSegment = 0;
-
-    // Remise à zéro des variables de simulation
-    std::deque <TuyauMacro*>::iterator ItCurTuy;
-    for( ItCurTuy = m_LstTuyauxMacro.begin(); ItCurTuy != m_LstTuyauxMacro.end(); ItCurTuy++)
-    {
-       (*ItCurTuy)->InitVarSimu();
-    }
-
-    m_bInitSimuEmissions = true;
 
     return true;
 }
@@ -2390,11 +2083,6 @@ void Reseau::AppendSideLinks(Tuyau * pLink, std::set<Tuyau*> & lstLinksToMicro,
         // pour prise en compte de l'entrée dans les portions de vitesse réglementaire spécifiques
         UpdateVitessesReg();
 
-
-        // On passe à l'instant suivant si la simulation complète est générée ou si le calcul de l'acoustique (ou le calcul des émissions) n'est pas demandé
-        //if((m_SymMode == Reseau::SYM_MODE_FULL) || !(IsSimuAcoustique() || IsSimuAir()) )
-        //	m_dbInstSimu+=pas_de_temps;
-
         //T2 = GetTickCount();
         //*m_pFicSimulation << T2-T1 << std::endl;
 
@@ -2638,217 +2326,6 @@ void Reseau::AppendSideLinks(Tuyau * pLink, std::set<Tuyau*> & lstLinksToMicro,
     }
 }
 
-
-//================================================================
-    bool Reseau::SimuEmissions
-//----------------------------------------------------------------
-// Fonction  : Calcule les émissions d'un pas de temps (acoustique/
-//             atmosphérique)
-// Version du: 02/04/2009
-// Historique:
-//================================================================
-(
-    bool bAcoustic,
-    bool bAir,
-    bool bSirane
-)
-{
-    double dbValCO2, dbValNOx, dbValPM;
-    double dbCumCO2, dbCumNOx, dbCumPM;
-    std::deque <Tuyau*>::iterator tcourant;
-    std::deque <Tuyau*>::iterator tdebut;
-    std::deque <Tuyau*>::iterator tfin;
-
-    std::vector <boost::shared_ptr<Vehicule>>::iterator ItCurVeh;
-    std::vector <boost::shared_ptr<Vehicule>>::iterator ItDebVeh;
-    std::vector <boost::shared_ptr<Vehicule>>::iterator ItFinVeh;
-
-    SrcAcoustique srcAcous;
-
-    // Initialisation du cumul des polluants pour l'instant considéré
-    dbCumCO2 = 0;
-    dbCumNOx = 0;
-    dbCumPM  = 0;
-
-    // MAJ des variables de gestion de l'instant
-    if (this->GetSymMode() == Reseau::SYM_MODE_FULL)
-    {
-        m_dbInstSimu+=pas_de_temps;
-        m_nInstSim++;
-    }
-
-    if( bAcoustic && m_XmlDocAcoustique)
-        m_XmlDocAcoustique->AddInstant(m_dbInstSimu, 0 );
-
-    if( bAir && m_XmlDocAtmo)
-        m_XmlDocAtmo->AddInstant(m_dbInstSimu, 0);
-
-    log()<<std::endl<<"Instant : "<<m_dbInstSimu<<std::endl;
-
-    m_bSimuTrafic = false;
-
-     // Reconstitution des données du trafic à partir du XML (fichier ou flux)
-    if (m_SymMode == Reseau::SYM_MODE_FULL)
-        LoadTrafic();
-
-    if( bAcoustic )
-    {
-        // si on effectue le calcul acoustique pour la simulation
-        // calcul de l'emission de bruit
-        tdebut = m_LstTuyaux.begin();
-        tfin = m_LstTuyaux.end();
-        for (tcourant=tdebut;tcourant!=tfin;tcourant++)
-        {
-            // Initialisation des caractéristiques acoustiques
-            (*tcourant)->InitAcousticVariables();
-        }
-
-        for (tcourant=tdebut;tcourant!=tfin;tcourant++)
-        {  // c'est la dedans que l'ecriture dans les fichiers de sortie d'emission a lieu
-            (*tcourant)->ComputeNoise(Loi_emis);
-        }
-    }
-
-    // Calcul de l'émission des véhicules
-    ItDebVeh = m_LstVehicles.begin();
-    ItFinVeh = m_LstVehicles.end();
-
-    for (ItCurVeh=ItDebVeh;ItCurVeh!=ItFinVeh;ItCurVeh++)
-    {
-        boost::shared_ptr<Vehicule> pV = (*ItCurVeh);
-
-        if( bAcoustic )
-        {
-            for(int i=0; i<(int)pV->GetType()->GetLstSrcAcoustiques().size(); i++)
-            {
-                srcAcous = pV->GetType()->GetLstSrcAcoustiques()[i];
-
-                if(pV->GetLink(0))
-                {
-                    pV->CalculEmission(Loi_emis, srcAcous.strIDDataBase.c_str(), pV->GetLink(0)->GetRevetement());
-
-                    if( m_bAcousSrcs )	// Sortie par source
-                    {
-                        pV->SortieEmission();
-                    }
-                    if( m_bAcousCell )	// Sortie par cellule
-                    {
-                        // Ajout de la contribution du véhicule à la cellule acoustique correspondante
-                        Segment *pCellAcoustique;
-                        pCellAcoustique = pV->GetCellAcoustique(srcAcous.dbPosition);
-
-                        if(pCellAcoustique)
-                        {
-                            pCellAcoustique->AddPuissanceAcoustique(pV->GetPuissanceAcoustique());
-                        }
-                    }
-                }
-            }
-        }
-
-        if(bAir)
-        {
-            // Calcul des émissions atmosphériques du véhicules
-            pV->CalculEmissionAtmos(pas_de_temps, dbValCO2, dbValNOx, dbValPM);
-            dbCumCO2 += dbValCO2;
-            dbCumNOx += dbValNOx;
-            dbCumPM  += dbValPM;
-
-            // Compteurs cumulés
-            m_dbCptCumCO2 += dbValCO2;
-            m_dbCptCumNOx += dbValNOx;
-            m_dbCptCumPM += dbValPM;
-
-            // Sortie des valeurs pour chaque véhicule à chaque pas de temps
-            m_XmlDocAtmo->AddVehiculeInst( pV->GetID(),  dbValCO2, dbValNOx, dbValPM );
-        }
-
-        if(bSirane)
-        {
-            // Calcul pour le pas de temps courant du temps écoulé dans chaque cellule
-            // et dans chaque plage de vitesse
-            if(pV->GetLink(0))
-            {
-                // Ajout de la contribution du véhicule à la cellule acoustique correspondante
-                Segment *pCellSirane = pV->GetCellSirane();
-                if(pCellSirane)
-                {
-                    pCellSirane->AddSpeedContribution(pV->GetType(), pV->GetVit(1), pV->GetVit(0), pas_de_temps);
-                }
-            }
-        }
-    }
-
-    // Sortie des émissions pour les tuyaux avec cellule acoustique
-    if(bAcoustic)
-    {
-        for (tcourant=tdebut;tcourant!=tfin;tcourant++)
-        {
-            (*tcourant)->EmissionOutput();
-        }
-
-        // Ecriture du fichier XML d'acoustique
-        m_XmlDocAcoustique->SaveLastInstant();
-    }
-
-    if(bAir)
-    {
-        // Sortie des valeurs cumulées du polluant pour l'instant
-        m_XmlDocAtmo->Addval( dbCumCO2, dbCumNOx, dbCumPM, m_dbCptCumCO2, m_dbCptCumNOx, m_dbCptCumPM);
-
-        m_XmlDocAtmo->SaveLastInstant();
-    }
-
-    if(bSirane)
-    {
-        // Si l'instant passé clos la période d'agrégation, on sort les résultats correspondants
-        if(fmod(m_dbInstSimu, m_dbPeriodeAgregationSirane) < pas_de_temps)
-        {
-            // sortie des résultats
-
-            // nouveau noeud période
-            m_XmlDocSirane->AddPeriod(m_dbDebutPeriodeSirane, m_dbInstSimu);
-            m_dbDebutPeriodeSirane = m_dbInstSimu;
-
-            // parcours des tuyaux
-            tdebut = m_LstTuyaux.begin();
-            tfin = m_LstTuyaux.end();
-            for (tcourant=tdebut;tcourant!=tfin;tcourant++)
-            {
-                const std::vector<Segment*> & cells = ((TuyauMicro*)(*tcourant))->GetSiraneCells();
-                for(size_t cellIdx = 0; cellIdx < cells.size(); cellIdx++)
-                {
-                    cells[cellIdx]->SortieSirane();
-                    cells[cellIdx]->InitVariablesSirane();
-                }
-            }
-
-            //parcours des briques de connexion
-            BriqueDeConnexion* pBrique;
-            for(size_t briqueIdx = 0; briqueIdx < Liste_carrefoursAFeux.size(); briqueIdx++)
-            {
-                pBrique = Liste_carrefoursAFeux[briqueIdx];
-                pBrique->GetCellSirane()->SortieSirane();
-                pBrique->GetCellSirane()->InitVariablesSirane();
-            }
-            for(size_t briqueIdx = 0; briqueIdx < Liste_giratoires.size(); briqueIdx++)
-            {
-                pBrique = Liste_giratoires[briqueIdx];
-                pBrique->GetCellSirane()->SortieSirane();
-                pBrique->GetCellSirane()->InitVariablesSirane();
-            }
-
-            // fermeture nouveau noeud période
-            m_XmlDocSirane->ClosePeriod();
-
-        }
-    }
-
-    return ( (hd*3600+md*60+sd+m_dbInstSimu) >= (hf*3600+mf*60+sf) ) ;
-
-}
-
-
 // Fin de la simulation du réseau
 void Reseau::FinSimuTrafic()
 {
@@ -2988,12 +2465,6 @@ void Reseau::FinSimuTrafic()
 				(*itDocTraf)->UpdateInstSortieVehicule((*veh)->GetID(), -1, sDest, sPlaqueSortie, (*veh)->GetDstCumulee(), (*veh)->GetTuyauxParcourus(), additionalAttributes);
             }
         }
-
-        if(m_bSimuAir && m_XmlDocAtmo)
-        {
-            m_XmlDocAtmo->AddVehicule( (*veh)->GetID(), (*veh)->GetType()->GetLabel(), sOrig, (*veh)->GetInstantEntree(), sDest, (*veh)->GetExitInstant(),
-                (*veh)->GetCumCO2(), (*veh)->GetCumNOx(), (*veh)->GetCumPM(), (*veh)->GetDstCumulee(), true );
-        }
     }
     m_LstVehicles.clear();
 
@@ -3092,74 +2563,6 @@ void Reseau::FinSimuTrafic()
     m_bInitSimuTrafic = false;
 
 }
-
-
-void Reseau::FinSimuEmissions(bool bAcoustic, bool bAir, bool bSirane)
-{
-    if(m_XmlReaderTrafic)
-    {
-        delete(m_XmlReaderTrafic);
-        m_XmlReaderTrafic = NULL;
-    }
-
-     // On vide la liste des véhicules sur le réseau
-    std::vector <boost::shared_ptr<Vehicule>>::iterator veh;
-    for (veh=m_LstVehicles.begin(); veh!=m_LstVehicles.end(); veh++)
-    {
-        if(bAir && m_XmlDocAtmo)
-        {
-            std::string sOrig;
-            if((*veh)->GetOrigine() )
-                sOrig = (*veh)->GetOrigine()->GetOutputID();
-
-            std::string sDest;
-            if((*veh)->GetDestination() )
-                sDest = (*veh)->GetDestination()->GetInputID();
-
-            m_XmlDocAtmo->AddVehicule( (*veh)->GetID(), (*veh)->GetType()->GetLabel(), sOrig, (*veh)->GetInstantEntree(), sDest, (*veh)->GetExitInstant(),
-                        (*veh)->GetCumCO2(), (*veh)->GetCumNOx(), (*veh)->GetCumPM(), (*veh)->GetDstCumulee(), true );
-        }
-    }
-    m_LstVehicles.clear();
-
-
-    // Fermeture documents XML de sortie
-
-    if(bAcoustic)
-    {
-        if (m_XmlDocAcoustique != NULL)
-        {
-            m_XmlDocAcoustique->Terminate();
-            delete(m_XmlDocAcoustique);
-            m_XmlDocAcoustique = NULL;
-        }
-    }
-
-    if(bAir)
-    {
-        if (m_XmlDocAtmo != NULL)
-        {
-            m_XmlDocAtmo->Terminate();
-            delete(m_XmlDocAtmo);
-            m_XmlDocAtmo = NULL;
-        }
-    }
-
-    if(bSirane)
-    {
-        if (m_XmlDocSirane != NULL)
-        {
-            m_XmlDocSirane->Terminate();
-            delete(m_XmlDocSirane);
-            m_XmlDocSirane = NULL;
-        }
-    }
-
-    SDateTime tNow = SDateTime::Now();
-    log()<<tNow.GetHour()<<":"<<tNow.GetMinute()<<":"<<tNow.GetSecond()<<std::endl<<std::endl;
-
-}
-
 
 //---------------------------------------------------------------------------------------------
 // Fonction de renvoi des variables de réseau
@@ -4091,12 +3494,6 @@ double Reseau::GetTimeStep(void)
                 }
             }
 
-            if(m_bSimuAir && m_XmlDocAtmo)
-            {
-                m_XmlDocAtmo->AddVehicule( pVehicule->GetID(), pVehicule->GetType()->GetLabel(), sOrig, pVehicule->GetInstantEntree(), sDest, pVehicule->GetExitInstant(),
-                    pVehicule->GetCumCO2(), pVehicule->GetCumNOx(), pVehicule->GetCumPM(), pVehicule->GetDstCumulee(), true );
-            }
-
             // Mise à jour de la matrice OD du réseau
             if(m_bSimuTrafic && m_bDebugOD)
             {
@@ -4971,7 +4368,6 @@ const std::string & ssID
     DOMNode   *pXMLNodeTroncons;
     DOMNode   *pXMLChild;
     DOMNode   *pXMLPlages;
-    DOMNode   *pXMLSrcAcoustiques;
     DOMNode	  *pXMLCapacites;
 
     std::string strTmp, strTmp2;
@@ -4981,8 +4377,7 @@ const std::string & ssID
     char cType, cResolution;
     double dbLargeurVoie, dbVitReg, dbVitCat;
     Point ptExtAmont, ptExtAval;
-    int nVoie, nCellAcoustique;
-    double dbCellAcouLength;
+    int nVoie;
     std::string strEltAmontID, strEltAvalID;
     double dbDuree;
     Repartiteur *pRepartiteur;
@@ -5371,32 +4766,12 @@ const std::string & ssID
     }
 
     // Type de simulation
-    m_bSimuAcoustique = false;
     m_bSimuTrafic = false;
-    m_bSimuAir = false;
-    m_bSimuSirane = false;
 
-    // Simulation trafic ?
+    // Simulation trafic
     GetXmlAttributeValue(pXMLNode, "simulation_trafic", m_bSimuTrafic, &loadingLogger);
 
-    // Simulation acoustique ?
-    GetXmlAttributeValue(pXMLNode, "simulation_acoustique", m_bSimuAcoustique, &loadingLogger);
-
-    // Simulation atmosphérique ?
-    GetXmlAttributeValue(pXMLNode, "simulation_atmospherique", m_bSimuAir, &loadingLogger);
-
-    // Production des sorties nécesaires à la simulation des polluants par Sirane ?
-    GetXmlAttributeValue(pXMLNode, "simulation_sirane", m_bSimuSirane, &loadingLogger);
-
-
-    // Type de sortie acoustique
     char cTmp;
-    GetXmlAttributeValue(pXMLNode, "type_sortieacoustique", m_cTypeSortieAcoustique, &loadingLogger);
-    if( m_cTypeSortieAcoustique == 'C' )
-        m_bAcousCell = true;
-    else
-        m_bAcousSrcs = true;
-
     // Comportement du flux
     m_bCptDestination = false;
     m_bCptDirectionnel = false;
@@ -5512,22 +4887,7 @@ const std::string & ssID
     GetXmlAttributeValue(pXMLNode, "calcul_tq_convergent", m_bCalculTqConvergent, &loadingLogger);
 
     char cDefaultResolution;
-    double dbDefaultCellAcouLength;
-    int nDefaultNbCellAcou;
     GetXmlAttributeValue(pXMLNode, "resolution", cDefaultResolution, &loadingLogger);
-    GetXmlAttributeValue(pXMLNode, "longueur_cell_acoustique", dbDefaultCellAcouLength, &loadingLogger);
-    GetXmlAttributeValue(pXMLNode, "nb_cell_acoustique", nDefaultNbCellAcou, &loadingLogger);
-
-    // Paramètres Sirane (pour CityDyne)
-    GetXmlAttributeValue(pXMLNode, "nb_cell_sirane", m_nNbCellSirane, &loadingLogger);
-    GetXmlAttributeValue(pXMLNode, "min_longueur_cell_sirane", m_dbMinLongueurCellSirane, &loadingLogger);
-    GetXmlAttributeValue(pXMLNode, "periode_agregation_sirane", m_dbPeriodeAgregationSirane, &loadingLogger);
-    GetXmlAttributeValue(pXMLNode, "extension_barycentre_sirane", m_bExtensionBarycentresSirane, &loadingLogger);
-    if(m_bExtensionBarycentresSirane)
-    {
-        m_nNbCellSirane = 1;
-    }
-
 
     // Paramètres globaux de gestion des zones de terminaison
     double dbMaxRangeInZones = std::numeric_limits<double>::infinity();
@@ -5812,31 +5172,6 @@ const std::string & ssID
         // Espacement des véhicules à l'arrêt
         GetXmlAttributeValue(pXMLChild, "espacement_arret", dbTmp, &loadingLogger);
         pTypeVeh->SetEspacementArret( dbTmp );
-
-        // Sources acoustiques
-        pXMLSrcAcoustiques = m_pXMLUtil->SelectSingleNode("./SOURCES_ACOUSTIQUES", pXMLChild->getOwnerDocument(), (DOMElement*)pXMLChild);
-        if(!pXMLSrcAcoustiques)
-        {
-            if(m_bSimuAcoustique)
-            {
-                loadingLogger << Logger::Error << "ERROR: at least one acoustic source must be defined for vehicle type " << pTypeVeh->GetLabel() << "." << std::endl;
-                loadingLogger << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                return false;
-            }
-        }
-        else
-        {
-            XMLSize_t countj = pXMLSrcAcoustiques->getChildNodes()->getLength();
-            for(XMLSize_t j=0; j<countj;j++)
-            {
-                DOMNode * pXmlChild = pXMLSrcAcoustiques->getChildNodes()->item(j);
-                if (pXmlChild->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-                GetXmlAttributeValue(pXmlChild, "position", dbTmp, &loadingLogger);
-                GetXmlAttributeValue(pXmlChild, "id_DB_LoiEmission", strTmp, &loadingLogger);
-                pTypeVeh->AddSrcAcoustiques( dbTmp, (char*)strTmp.c_str() );
-            }
-        }
 
         // Décélération
         GetXmlAttributeValue(pXMLChild, "deceleration", dbTmp, &loadingLogger);
@@ -6536,14 +5871,7 @@ const std::string & ssID
             if(!GetXmlAttributeValue(pTraficParams, "traversees", bTraversees, &loadingLogger)) bTraversees = true;
 
             strTmp = "";
-            if( !GetXmlAttributeValue(pXMLChild, "revetement", strTmp, &loadingLogger) && m_bSimuAcoustique)              // Revetement (obligatoire uniquement dans le cas d'une simulation acoustique)
-            {
-                loadingLogger << Logger::Error << "ERROR: the road surface of the roundabout " << strID << " is not defined, it is mandatory to acoustic simulation."  <<std::endl;
-                loadingLogger << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                return false;
-            }
-            else
-                strcpy(strRevetement, strTmp.c_str());
+            strcpy(strRevetement, strTmp.c_str());
 
             pGiratoire = new Giratoire(strID, dbVitMax, strRevetement, dbTAgr, dbGamma, dbMu, nVoie, dbLargeurVoie, cType, nm, dbBeta, dbBetaInt, bTraversees, this);
 
@@ -6559,7 +5887,6 @@ const std::string & ssID
     }
 
     // SECTION RESEAU / CONNEXIONS / CARREFOUR A FEUX
-    double  dbLong;
     pXMLNode = m_pXMLUtil->SelectSingleNode("./CONNEXIONS/CARREFOURSAFEUX", pXMLReseau->getOwnerDocument(), (DOMElement*)pXMLReseau);
 
     if(pXMLNode)
@@ -6588,10 +5915,7 @@ const std::string & ssID
             // récupération des attributs simulation associés
             DOMNode * pSimuParams = m_pXMLUtil->SelectSingleNode("./ELEMENTS/ELEMENT[@id=\"" + strTmp + "\"]", pXMLNodeSimulation->getOwnerDocument(), (DOMElement*)pXMLNodeSimulation);
 
-            if(!GetXmlAttributeValue(pSimuParams, "longueur_cell_acoustique", dbLong, &loadingLogger))
-                dbLong = dbDefaultCellAcouLength;     // Longueur désirée des cellules acoustiques
-
-            pCAF = new CarrefourAFeuxEx(strID, dbVitMax, dbTAgr, dbGamma, dbMu, dbLong, bTraversees, this);
+            pCAF = new CarrefourAFeuxEx(strID, dbVitMax, dbTAgr, dbGamma, dbMu, bTraversees, this);
 
             // Chargement ZLevel
             int nZlevel;
@@ -6672,14 +5996,7 @@ const std::string & ssID
         }
 
         strTmp = "";
-        if( !GetXmlAttributeValue(pXMLChild, "revetement", strTmp, &loadingLogger) && m_bSimuAcoustique)              // Revetement (obligatoire uniquement dans le cas d'une simulation acoustique)
-        {
-            loadingLogger << Logger::Error << "ERROR: the road surface for link " << strID << " is undefined, and is mandatory for acoustic simulation"  <<std::endl;
-            loadingLogger << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-            return false;
-        }
-        else
-            strcpy(strRevetement, strTmp.c_str());
+        strcpy(strRevetement, strTmp.c_str());
 
 
         if(!GetXmlAttributeValue(pSimuParams, "resolution", cResolution, &loadingLogger)) cResolution = cDefaultResolution;     // resolution
@@ -6697,18 +6014,6 @@ const std::string & ssID
         std::string roadLabel;
         GetXmlAttributeValue(pXMLChild, "nom_axe", roadLabel, &loadingLogger);               // Nom de l'axe / la route
         GetXmlAttributeValue(pXMLChild, "nb_voie", nVoie, &loadingLogger);                    // nombre de voie
-
-        // Nombre ou longueur des cellules acoustiques du tronçon
-        if(pSimuParams)
-        {
-            if(!GetXmlAttributeValue(pSimuParams, "nb_cell_acoustique", nCellAcoustique, &loadingLogger)) nCellAcoustique = nDefaultNbCellAcou; // nCellAcoustique
-            if(!GetXmlAttributeValue(pSimuParams, "longueur_cell_acoustique", dbCellAcouLength, &loadingLogger)) dbCellAcouLength = dbDefaultCellAcouLength;
-        }
-        else
-        {
-            nCellAcoustique = nDefaultNbCellAcou;
-            dbCellAcouLength = dbDefaultCellAcouLength;
-        }
 
         ConnectionPonctuel *pCnxAmont, *pCnxAval;
         char cTypeEltAmont, cTypeEltAval;
@@ -6904,7 +6209,7 @@ const std::string & ssID
                       strRevetement, largeursVoies,
                       ptExtAmont.dbX, ptExtAmont.dbY, ptExtAval.dbX, ptExtAval.dbY,
                       ptExtAmont.dbZ, ptExtAval.dbZ,
-                      0, nVoie,pas_de_temps, dbVitReg, dbVitCat, roadLabel);
+                      nVoie,pas_de_temps, dbVitReg, dbVitCat, roadLabel);
 
             T = TMacro;
 
@@ -6928,7 +6233,7 @@ const std::string & ssID
                           strRevetement, largeursVoies,
                           ptExtAmont.dbX, ptExtAmont.dbY, ptExtAval.dbX, ptExtAval.dbY,
                           ptExtAmont.dbZ, ptExtAval.dbZ,
-                          nVoie,pas_de_temps, nCellAcoustique, dbVitReg, dbVitCat, dbCellAcouLength, roadLabel, Tuyau::TT_MESO);
+                          nVoie,pas_de_temps, dbVitReg, dbVitCat, roadLabel, Tuyau::TT_MESO);
 
                 //Chargement << TMicro << " " << TMicro->GetLabel();
 
@@ -6965,7 +6270,7 @@ const std::string & ssID
                           strRevetement, largeursVoies,
                           ptExtAmont.dbX, ptExtAmont.dbY, ptExtAval.dbX, ptExtAval.dbY,
                           ptExtAmont.dbZ, ptExtAval.dbZ,
-                          nVoie,pas_de_temps, nCellAcoustique, dbVitReg, dbVitCat, dbCellAcouLength, roadLabel, Tuyau::TT_MICRO);
+                          nVoie,pas_de_temps, dbVitReg, dbVitCat, roadLabel, Tuyau::TT_MICRO);
 
                 //Chargement << TMicro << " " << TMicro->GetLabel();
 
@@ -7650,12 +6955,6 @@ const std::string & ssID
 
         int nbVoiesTuyauInsertion = nbVoiesInsDroite + nbVoiesInsGauche + pTuyauAval->getNb_voies();
 
-        // nombre de cellules acoustiques
-        int nbCellules;
-        DOMNode * pSimuParams = m_pXMLUtil->SelectSingleNode("./ELEMENTS/ELEMENT[@id=\"" + insertionID + "\"]", Convergents_Insertion[convInsIdx]->getOwnerDocument(), (DOMElement*)pXMLNodeSimulation);
-        if(!GetXmlAttributeValue(pSimuParams, "nb_cell_acoustique", nbCellules, &loadingLogger)) nbCellules = nDefaultNbCellAcou; // nCellAcoustique
-        if(!GetXmlAttributeValue(pSimuParams, "longueur_cell_acoustique", dbCellAcouLength, &loadingLogger)) dbCellAcouLength = dbDefaultCellAcouLength;
-
         // création du tuyau compris entre le convergent et le répartiteur
         Tuyau * T;
         strcpy(strRevetement, pTuyauAval->GetRevetement().c_str());
@@ -7688,7 +6987,7 @@ const std::string & ssID
                     pTuyauAmontPrio->GetExtAval()->dbX, pTuyauAmontPrio->GetExtAval()->dbY,
                     ptAvalInsertion.dbX, ptAvalInsertion.dbY,
                     pTuyauAmontPrio->GetExtAval()->dbZ, pTuyauAval->GetExtAmont()->dbZ,
-                    nbCellules, nbVoiesTuyauInsertion,pas_de_temps, pTuyauAval->GetVitesseMax(), DBL_MAX, pTuyauAval->GetRoadLabel());
+                    nbVoiesTuyauInsertion,pas_de_temps, pTuyauAval->GetVitesseMax(), DBL_MAX, pTuyauAval->GetRoadLabel());
 
             m_LstTuyauxMacro.push_back((TuyauMacro*)T);
             m_LstTuyaux.push_back(T);
@@ -7707,7 +7006,7 @@ const std::string & ssID
                         pTuyauAmontPrio->GetExtAval()->dbX, pTuyauAmontPrio->GetExtAval()->dbY,
                         ptAvalInsertion.dbX, ptAvalInsertion.dbY,
                         pTuyauAmontPrio->GetExtAval()->dbZ, pTuyauAval->GetExtAmont()->dbZ,
-                        nbVoiesTuyauInsertion,pas_de_temps, nbCellules, pTuyauAval->GetVitesseMax(), DBL_MAX, dbCellAcouLength, pTuyauAval->GetRoadLabel(), Tuyau::TT_MICRO);
+                        nbVoiesTuyauInsertion,pas_de_temps, pTuyauAval->GetVitesseMax(), DBL_MAX, pTuyauAval->GetRoadLabel(), Tuyau::TT_MICRO);
 
             m_LstTuyauxMicro.push_back((TuyauMicro*)T);
             m_LstTuyaux.push_back(T);
@@ -8554,21 +7853,7 @@ const std::string & ssID
 
                         m_mapTuyaux[pTuyau->GetLabel()] = pTuyau;		// Ajout dans la map pour accès optimisé (les tronçons internes sont déjà présents mais sous un autre label)
 
-                        // Récupération du nb de cellules acoustiques dans les paramètres de simulation
-                        DOMNode * pXMLSimuParams = m_pXMLUtil->SelectSingleNode("./ELEMENTS/ELEMENT[@id=\"" + strID + "\"]", pXMLNodeSimulation->getOwnerDocument(), (DOMElement*)pXMLNodeSimulation);
-
-                        if(pXMLSimuParams)
-                            GetXmlAttributeValue(pXMLSimuParams, "nb_cell_acoustique", nTmp, &loadingLogger);
-                        else
-                            nTmp = 0;
-
                         TuyauMicro * pTuyMicro = dynamic_cast<TuyauMicro*>(pTuyau);
-                        if(pTuyMicro)
-                        {
-                            pTuyMicro->SetNbCellAcoustique(nTmp);
-                        }
-                        pTuyau->SetNbCell(nTmp);
-
                         // Lecture des points internes du tronçon
                         Point   pt;
                         DOMNode * XMLPts = m_pXMLUtil->SelectSingleNode("./POINTS_INTERNES", pXMLNodeTI->getOwnerDocument(), (DOMElement*)pXMLNodeTI);
@@ -9478,23 +8763,6 @@ const std::string & ssID
     for(iterRep = Liste_repartiteurs.begin(); iterRep != Liste_repartiteurs.end(); ++iterRep)
         iterRep->second->FinInit(&loadingLogger);
 
-    // Discretisation Sirane à la fin du chargement pour que les briqus soient complétement définies (calcul des barycentres)
-    if( IsSimuSirane() )
-    {
-        for(size_t iTuyau = 0; iTuyau < m_LstTuyaux.size(); iTuyau++)
-        {
-            Tuyau * pTuyau = m_LstTuyaux[iTuyau];
-            if(pTuyau->GetBriqueParente() == NULL)
-            {
-                TuyauMicro * pTuyauMicro = dynamic_cast<TuyauMicro*>(pTuyau);
-                if(pTuyauMicro)
-                {
-                    pTuyauMicro->DiscretisationSirane();
-                }
-            }
-        }
-    }
-
     // rmq. : pour éviter un recalcul inutile de l'affectation au premier instant.
     m_LstItiChangeInstants.erase(GetTimeStep());
 
@@ -9809,1401 +9077,6 @@ const std::string & ssID
 }
 
 //=================================================================
-    bool Reseau::UpdateReseau
-//----------------------------------------------------------------
-// Fonction  : Chargement du document XML de modification
-// Remarque  : Suppression des variantes chargées et chargement des
-//			   nouvelles données
-// Version du: 20/06/2008
-// Historique: 20/06/2008 (C.Bécarie - Tinea)
-//             Création
-//=================================================================
-(
- const std::string & strXMLFile
-)
-{
-    DOMNode				*pXMLRoot;
-    DOMNode				*pXMLReseau;
-    DOMNode				*pXMLTrafic;
-    DOMNode             *pXMLExtremite;
-    DOMNode             *pXMLRepartiteur;
-    DOMNode             *pXMLDemandes;
-    DOMNode             *pXMLCapacites;
-
-    std::string         sXML;
-    XERCES_CPP_NAMESPACE::DOMDocument    *pXMLDocUpdate;
-    std::string		    sTmp;
-    std::string         strTmp;
-    double              dbDuree;
-    char                cType;
-    SymuViaTripNode     *pE;
-    SymuViaTripNode     *pS;
-    Repartiteur         *pR;
-    double              dbTmp;
-    double              dbTmp2;
-
-    // Initialisation
-    sXML = strXMLFile;
-
-    // Vérification de l'existence du fichier XML de modification
-    if (!SystemUtil::FileExists(sXML))
-    {
-        std::string sMsg;
-        sMsg = "The file ";
-        sMsg += sXML + " doesn't exist !";
-#ifdef WIN32
-        ::MessageBox(NULL, SystemUtil::ToWString(sMsg).c_str(), L"SymuVia Error", 0);
-#else
-        std::cerr << sMsg << std::endl;
-#endif
-        return false;
-    }
-
-    // Création et validation du document XML
-    std::string sSchema = SystemUtil::GetFilePath("update.xsd");
-    std::string firstError;
-
-    try
-    {
-        pXMLDocUpdate = m_pXMLUtil->LoadDocument(sXML, sSchema, NULL, firstError);
-    }
-    catch (const XMLException& e)
-    {
-        std::string s = US(e.getMessage());
-#ifdef WIN32
-        ::MessageBox(NULL,SystemUtil::ToWString("Error validating against the schema 'update.xsd' loading input file : " + s).c_str(), L"SymuVia - Network update", 0);
-#else
-        std::cerr << "Error validating against the schema 'update.xsd' loading input file : " << s << std::endl;
-#endif
-
-        return false;
-    }
-    catch (const SAXException& e)
-    {
-        std::string s = US(e.getMessage());
-#ifdef WIN32
-        ::MessageBox(NULL,SystemUtil::ToWString("Error validating against the schema 'update.xsd' loading input file : " + s).c_str(), L"SymuVia - Network update", 0);
-#else
-        std::cerr << "Error validating against the schema 'update.xsd' loading input file : " << s << std::endl;
-#endif
-
-        return false;
-    }
-    catch (const DOMException& e)
-    {
-        std::string s = US(e.getMessage());
-#ifdef WIN32
-        ::MessageBox(NULL,SystemUtil::ToWString("Error validating against the schema 'update.xsd' loading input file : " + s).c_str(), L"SymuVia - Network update", 0);
-#else
-        std::cerr << "Error validating against the schema 'update.xsd' loading input file : " << s << std::endl;
-#endif
-
-        return false;
-    }
-    catch (...)
-    {
-#ifdef WIN32
-        ::MessageBox(NULL,L"Error validating against the schema 'update.xsd' loading input file", L"SymuVia - Network update", 0);
-#else
-        std::cerr << "Error validating against the schema 'update.xsd' loading input file" << std::endl;
-#endif
-
-        return false;
-    }
-
-    if (pXMLDocUpdate == NULL)
-    {
-#ifdef WIN32
-        ::MessageBox(NULL,SystemUtil::ToWString("Error validating against the schema 'update.xsd' loading input file : " + firstError).c_str(), L"Network update", 0);
-#else
-        std::cerr << "Error validating against the schema 'update.xsd' loading input file : " + firstError << std::endl;
-#endif
-
-        return false;
-    }
-
-    // Lecture de l'arbre
-
-    // Noeud root
-    pXMLRoot = pXMLDocUpdate->getDocumentElement();
-
-    // Noeud reseau
-    pXMLReseau = m_pXMLUtil->SelectSingleNode("RESEAUX/RESEAU[@id=\"" + m_ReseauID + "\"]", pXMLDocUpdate, (DOMElement*)pXMLRoot);
-
-    //----------------------
-    // Noeud troncons
-    //----------------------
-    Tuyau	*pT;
-    DOMNode *pXMLTroncons;
-    DOMNode *pXMLTroncon;
-
-    pXMLTroncons = m_pXMLUtil->SelectSingleNode( "TRONCONS", pXMLDocUpdate, (DOMElement*)pXMLReseau);
-    if(pXMLTroncons)
-    {
-        XMLSize_t counti = pXMLTroncons->getChildNodes()->getLength();
-        for(XMLSize_t i=0; i<counti;i++)
-        {
-            pXMLTroncon = pXMLTroncons->getChildNodes()->item(i);
-            if (pXMLTroncon->getNodeType() != DOMNode::ELEMENT_NODE)
-                continue;
-
-            // id
-            GetXmlAttributeValue(pXMLTroncon, "id", sTmp, m_pLogger);
-            pT = this->GetLinkFromLabel( sTmp );
-
-            if(pT)
-            {
-                if( pT->IsMicro() )
-                {
-                    bool bTmp;
-                    GetXmlAttributeValue(pXMLTroncon, "chgt_voie_droite", bTmp, m_pLogger);
-                    TuyauMicro* pTM = (TuyauMicro*)pT;
-                    if( pTM->IsChtVoieVersDroiteAutorise()!=bTmp )
-                        pTM->SetChtVoieVersDroiteAutorise(bTmp);
-
-                    // Chargement des voies réduites
-                    DOMNode *pXMLVoiesReduites = m_pXMLUtil->SelectSingleNode("VOIES_REDUITES", pXMLTroncon->getOwnerDocument(), (DOMElement*)pXMLTroncon);
-
-                    if(pXMLVoiesReduites)
-                    {
-                        XMLSize_t countj = pXMLVoiesReduites->getChildNodes()->getLength();
-                        for(XMLSize_t j=0; j<countj; j++)
-                        {
-                            DOMNode* xmlChildj = pXMLVoiesReduites->getChildNodes()->item(j);
-                            if (xmlChildj->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-                            int nVoie;
-                            GetXmlAttributeValue(xmlChildj, "numvoie", nVoie, m_pLogger);
-
-                            // Vérification de la cohérence du numéro de voie réduite
-                            if( nVoie > pTM->getNbVoiesDis() )
-                            {
-                                return false;
-                            }
-
-                            // récupération des exceptions de types de véhicules
-                            std::vector<TypeVehicule*> lstExceptionTypesVeh;
-                            if(GetXmlAttributeValue(xmlChildj, "exclusion_types_vehicules", strTmp, m_pLogger))
-                            {
-                                std::deque<std::string> split = SystemUtil::split(strTmp, ' ');
-                                for(size_t j=0; j< split.size(); j++)
-                                {
-                                    TypeVehicule * pTV = GetVehicleTypeFromID(split.at(j));
-                                    if(pTV)
-                                        lstExceptionTypesVeh.push_back(pTV);
-                                    else
-                                    {
-                                        return false;
-                                    }
-                                }
-                            }
-
-                            bool bActive = true;
-                            GetXmlAttributeValue(xmlChildj, "active", bActive, m_pLogger);
-                            if(!bActive)
-                            {
-                                ((VoieMicro*)pTM->GetLstLanes()[nVoie-1])->SetNotChgtVoieObligatoire();
-                            }
-                            else
-                            {
-                                ((VoieMicro*)pTM->GetLstLanes()[nVoie-1])->SetChgtVoieObligatoire(lstExceptionTypesVeh);
-                            }
-
-                        }
-                    }
-                    else
-                    {
-                        for(int i=0; i<pTM->getNbVoiesDis(); i++)
-                            ((VoieMicro*)pTM->GetLstLanes()[i])->SetNotChgtVoieObligatoire();
-                    }
-                }
-
-                // Chargement des voies réservées et terre-pleins
-                DOMNode * XMLVoiesReservees = m_pXMLUtil->SelectSingleNode("./VOIES_RESERVEES", pXMLTroncon->getOwnerDocument(), (DOMElement*)pXMLTroncon);
-                if(XMLVoiesReservees)
-                {
-                    // Lecture des voies réservées
-                    DOMNode * pNodeVoieReservee;
-                    DOMXPathResult * pXMLNodeList = m_pXMLUtil->SelectNodes("./VOIE_RESERVEE", XMLVoiesReservees->getOwnerDocument(), (DOMElement*)XMLVoiesReservees);
-                    XMLSize_t countj = pXMLNodeList->getSnapshotLength();
-                    std::map<int, double> mapDureesVoiesReservees;
-                    map<int, vector<PlageTemporelle*> > plagesParVoie;
-                    for(XMLSize_t j=0; j<countj; j++)
-                    {
-                        pXMLNodeList->snapshotItem(j);
-                        pNodeVoieReservee = pXMLNodeList->getNodeValue();
-                        int num_voie;
-
-                        GetXmlAttributeValue(pNodeVoieReservee, "num_voie", num_voie, m_pLogger);
-                        vector<PlageTemporelle*> plages;
-                        if(!GetXmlDuree(pNodeVoieReservee,this,dbDuree,plages, m_pLogger))
-                        {
-                            m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                            return false;
-                        }
-                        plagesParVoie[num_voie].insert(plagesParVoie[num_voie].end(), plages.begin(), plages.end());
-                        GetXmlAttributeValue(pNodeVoieReservee, "id_typesvehicules", strTmp, m_pLogger);
-                        bool bActive = true;
-                        GetXmlAttributeValue(pNodeVoieReservee, "active", bActive, m_pLogger);
-                        // construction de tous les types autres que ceux de la liste pour interdiction
-                        std::deque<std::string> split = SystemUtil::split(strTmp, ' ');
-                        std::vector<TypeVehicule*> pVectTypesInterdits;
-                        for(size_t typeIdx = 0; typeIdx < m_LstTypesVehicule.size(); typeIdx++)
-                        {
-                            bool isVehiculeAutorise = false;
-                            for(size_t splitIdx = 0; splitIdx<split.size(); splitIdx++)
-                            {
-                                if(GetVehicleTypeFromID(split[splitIdx]) == m_LstTypesVehicule[typeIdx])
-                                {
-                                    isVehiculeAutorise = true;
-                                }
-                            }
-                            if(!isVehiculeAutorise)
-                            {
-                                pVectTypesInterdits.push_back(m_LstTypesVehicule[typeIdx]);
-                            }
-                        }
-                        if(m_bTypeProfil)
-                        {
-                            if(mapDureesVoiesReservees.find(num_voie-1) != mapDureesVoiesReservees.end())
-                            {
-                                mapDureesVoiesReservees[num_voie-1] += dbDuree;
-                            }
-                            else
-                            {
-                                mapDureesVoiesReservees[num_voie-1] = dbDuree;
-                            }
-                            pT->AddVoieReserveeByTypeVeh(pVectTypesInterdits, mapDureesVoiesReservees[num_voie-1]-dbDuree, dbDuree, NULL, m_dbDureeSimu, num_voie-1, bActive);
-                        }
-                        else
-                        {
-                            if(plages.size() == 0)
-                            {
-                                // utilisation de la valeur par défaut dbDuree
-                                pT->AddVoieReserveeByTypeVeh(pVectTypesInterdits, 0, dbDuree, NULL, m_dbDureeSimu, num_voie-1, bActive);
-                            }
-                            else
-                            {
-                                // Ajout de la variation pour chacune des plages temporelles définies
-                                for(size_t iPlage = 0; iPlage < plages.size(); iPlage++)
-                                {
-                                    pT->AddVoieReserveeByTypeVeh(pVectTypesInterdits, 0, 0, plages[iPlage], m_dbDureeSimu, num_voie-1, bActive);
-                                }
-                            }
-                        }
-                    }
-                    pXMLNodeList->release();
-
-                    // vérif de la couverture des plages temporelles
-                    map<int, vector<PlageTemporelle*> >::iterator iter;
-                    for(iter = plagesParVoie.begin(); iter != plagesParVoie.end(); iter++)
-                    {
-                        if(iter->second.size() > 0 && !CheckPlagesTemporellesEx(m_dbDureeSimu, iter->second))
-                        {
-                            log() << Logger::Error << "ERROR : The time frames defined for the reserved lanes of link " << pT->GetLabel() << " don't cover the home simulation duration for lane number " << iter->first << std::endl;
-                            log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                            m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                            return false;
-                        }
-                    }
-                }
-
-                // Lecture des voies interdites
-                DOMNode * XMLVoiesInterdites = m_pXMLUtil->SelectSingleNode("./VOIES_INTERDITES", pXMLTroncon->getOwnerDocument(), (DOMElement*)pXMLTroncon);
-                if(XMLVoiesInterdites)
-                {
-                    // Lecture des voies interdites
-                    DOMNode * pNodeVoieInterdite;
-                    DOMXPathResult * pXMLNodeList = m_pXMLUtil->SelectNodes("./VOIE_INTERDITE", XMLVoiesInterdites->getOwnerDocument(), (DOMElement*)XMLVoiesInterdites);
-                    XMLSize_t countj = pXMLNodeList->getSnapshotLength();
-                    for(XMLSize_t j=0; j<countj; j++)
-                    {
-                        pXMLNodeList->snapshotItem(j);
-                        pNodeVoieInterdite = pXMLNodeList->getNodeValue();
-                        int num_voie;
-                        GetXmlAttributeValue(pNodeVoieInterdite, "num_voie", num_voie, m_pLogger);
-                        GetXmlAttributeValue(pNodeVoieInterdite, "id_typesvehicules", strTmp, m_pLogger);
-                        std::deque<std::string> split = SystemUtil::split(strTmp, ' ');
-                        std::vector<TypeVehicule*> lstTypesInterdits;
-                        for(size_t splitIdx = 0; splitIdx<split.size(); splitIdx++)
-                        {
-                            TypeVehicule * pTV = GetVehicleTypeFromID(split[splitIdx]);
-                            if(!pTV)
-                            {
-                                log() << Logger::Warning << " WARNING : the vehicle type " << split[splitIdx] << " defined for a forbidden lane of the link " << pT->GetLabel() << " doesn't exist." << endl;
-                                log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                            }
-                            else
-                            {
-                                lstTypesInterdits.push_back(pTV);
-                            }
-                        }
-                        pT->AddVoieInterditeByTypeVeh(lstTypesInterdits, num_voie-1);
-                    }
-                    pXMLNodeList->release();
-                }
-
-                // Lecture des terre-pleins
-                DOMNode * XMLTerrePleins = m_pXMLUtil->SelectSingleNode("./TERRE_PLEINS", pXMLTroncon->getOwnerDocument(), (DOMElement*)pXMLTroncon);
-                if(XMLTerrePleins)
-                {
-                    DOMNode * pNodeTerrePlein;
-                    DOMXPathResult * pXMLNodeList = m_pXMLUtil->SelectNodes("./TERRE_PLEIN", XMLTerrePleins->getOwnerDocument(), (DOMElement*)XMLTerrePleins);
-                    XMLSize_t countj = pXMLNodeList->getSnapshotLength();
-                    for(XMLSize_t j=0; j<countj; j++)
-                    {
-                        pXMLNodeList->snapshotItem(j);
-                        pNodeTerrePlein = pXMLNodeList->getNodeValue();
-                        int num_voie;
-                        GetXmlAttributeValue(pNodeTerrePlein, "num_voie", num_voie, m_pLogger);
-                        GetXmlAttributeValue(pNodeTerrePlein, "position_debut", dbTmp, m_pLogger);
-                        GetXmlAttributeValue(pNodeTerrePlein, "position_fin", dbTmp2, m_pLogger);
-                        dbTmp2=dbTmp2==numeric_limits<double>::infinity()?pT->GetLength():dbTmp2;
-
-                        // Vérifications de la position du terre-plein
-                        if( pT->GetLength() < dbTmp || dbTmp2 <= dbTmp)
-                        {
-                            return false;
-                        }
-
-                        // lecture des différentes variantes temporelles
-                        std::vector<bool> actifs;
-                        std::vector<double> durees;
-                        DOMXPathResult * pXMLTPVarList = m_pXMLUtil->SelectNodes("./TERRE_PLEIN_VARIATION", pNodeTerrePlein->getOwnerDocument(), (DOMElement*)pNodeTerrePlein);
-                        XMLSize_t countk = pXMLTPVarList->getSnapshotLength();
-                        std::vector<PlageTemporelle*> tmpPlagesVect;
-                        std::vector<bool> tmpPlagesActivesVect;
-                        for(XMLSize_t k=0; k<countk; k++)
-                        {
-                            pXMLTPVarList->snapshotItem(k);
-                            DOMNode * pNodeTerrePleinVar = pXMLTPVarList->getNodeValue();
-
-                            bool bActif = true;
-                            GetXmlAttributeValue(pNodeTerrePleinVar, "actif", bActif, m_pLogger);
-                            vector<PlageTemporelle*> plages;
-                            if(!GetXmlDuree(pNodeTerrePleinVar,this, dbDuree, plages, m_pLogger))
-                            {
-                                m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                                return false;
-                            }
-
-                            if(plages.size() == 0)
-                            {
-                                durees.push_back(dbDuree);
-                                actifs.push_back(bActif);
-                            }
-                            else
-                            {
-                                tmpPlagesVect.insert(tmpPlagesVect.end(), plages.begin(), plages.end());
-                                tmpPlagesActivesVect.resize(tmpPlagesActivesVect.size() + plages.size(), bActif);
-                            }
-                        }
-                        pXMLTPVarList->release();
-
-                        // vérification de la couverture des plages temporelles
-                        if(tmpPlagesVect.size() > 0)
-                        {
-                            if(!CheckPlagesTemporellesEx(m_dbDureeSimu, tmpPlagesVect))
-                            {
-                                log() << Logger::Error << "ERROR : The time frames defined for a median of link " << pT->GetLabel() << " don't cover the whole simulation duration!" << std::endl;
-                                log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                                m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                                return false;
-                            }
-                        }
-
-                        pT->AddTerrePlein(num_voie-1, dbTmp, dbTmp2, durees, actifs, tmpPlagesVect, tmpPlagesActivesVect);
-                    }
-                    pXMLNodeList->release();
-                }
-            }
-        }
-    }
-    // Section RESEAU / ROUTES
-    DOMNode * pRoutesNode;
-
-    pRoutesNode = m_pXMLUtil->SelectSingleNode( "./ROUTES", pXMLDocUpdate, (DOMElement*)pXMLReseau);
-
-    if( pRoutesNode )
-    {
-        // parcours toutes les routes si le noeud existe
-        XMLSize_t counti = pRoutesNode->getChildNodes()->getLength();
-        for( XMLSize_t i =0; i < counti; ++i)
-        {
-            string strRouteId;
-
-            DOMNode * pRouteNode;
-            pRouteNode = pRoutesNode->getChildNodes()->item(i);
-            if (pRouteNode->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-            GetXmlAttributeValue( pRouteNode, "id", strRouteId, m_pLogger);
-            // Obtient les troncons d'itineraires
-            DOMNode * pXMLTroncons = m_pXMLUtil->SelectSingleNode("./TRONCONS_", pRouteNode->getOwnerDocument(), (DOMElement*)pRouteNode);
-            std::vector<Tuyau *> routeLinks;
-            if( pXMLTroncons)
-            {
-                XMLSize_t countj = pXMLTroncons->getChildNodes()->getLength();
-                std::string strTronconId;
-                for(XMLSize_t j=0; j<countj;j++)
-                {
-                    DOMNode * pTronconNode = pXMLTroncons->getChildNodes()->item(j);
-                    GetXmlAttributeValue( pTronconNode, "id", strTronconId, m_pLogger);
-                    Tuyau *pLink = this->GetLinkFromLabel(strTronconId);
-                    if( pLink )
-                    {
-                        routeLinks.push_back(pLink);
-                    }
-
-                } //rof each troncons
-            }
-
-            Connexion * pJunction = NULL;
-            DOMNode * pXMLNoeud = m_pXMLUtil->SelectSingleNode("./NOEUD", pRouteNode->getOwnerDocument(), (DOMElement*)pRouteNode);
-            if (pXMLNoeud)
-            {
-                GetXmlAttributeValue(pXMLNoeud, "id", strTmp, m_pLogger);
-                char cTmp;
-                pJunction = GetConnectionFromID(strTmp, cTmp);
-                if (!pJunction)
-                {
-                    pJunction = GetBrickFromID(strTmp);
-                }
-            }
-
-            // ajoute la route en mémoire
-            if (!strRouteId.empty())
-            {
-                m_routes[strRouteId] = std::make_pair(routeLinks, pJunction);
-            }
-
-        } // rof each routes
-
-    }
-    // fin section RESEAU / ROUTES
-
-    //----------------------
-    // Noeud repartiteurs
-    //----------------------
-    Connexion *pCnx;
-    DOMNode *pXMLCnxs;
-    DOMNode    *pXMLCnx;
-    DOMNode *pXMLMvts;
-
-    pXMLCnxs = m_pXMLUtil->SelectSingleNode( "CONNEXIONS/REPARTITEURS", pXMLDocUpdate, (DOMElement*)pXMLReseau);
-    if(pXMLCnxs)
-    {
-        XMLSize_t counti = pXMLCnxs->getChildNodes()->getLength();
-        for(XMLSize_t i=0; i<counti;i++)
-        {
-            pXMLCnx = pXMLCnxs->getChildNodes()->item(i);
-            if (pXMLCnx->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-            // id
-            GetXmlAttributeValue(pXMLCnx, "id", sTmp, m_pLogger);
-            pCnx = GetConnectionFromID( sTmp, cType );
-
-            if(pCnx)
-            {
-                // Matrice des mouvements autorisés
-                pXMLMvts = m_pXMLUtil->SelectSingleNode( "./MOUVEMENTS_AUTORISES", pXMLDocUpdate, (DOMElement*)pXMLCnx);
-                if(pXMLMvts)
-                {
-                    pCnx->m_mapMvtAutorises.clear();
-                    if( !LoadMouvementsAutorises( pCnx, pXMLMvts, m_pLogger))
-                        return false;
-                }
-            }
-        }
-    }
-
-    //----------------------
-    // Noeud carrefoursafeux
-    //----------------------
-    pXMLCnxs = m_pXMLUtil->SelectSingleNode( "CONNEXIONS/CARREFOURSAFEUX", pXMLDocUpdate, (DOMElement*)pXMLReseau);
-    if(pXMLCnxs)
-    {
-        XMLSize_t counti = pXMLCnxs->getChildNodes()->getLength();
-        for(XMLSize_t i=0; i<counti;i++)
-        {
-            pXMLCnx = pXMLCnxs->getChildNodes()->item(i);
-            if (pXMLCnx->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-            // id
-            GetXmlAttributeValue(pXMLCnx, "id", sTmp, m_pLogger);
-            CarrefourAFeuxEx * pCAF = (CarrefourAFeuxEx*)GetBrickFromID( sTmp );
-
-            if(pCAF)
-            {
-                // Matrice des mouvements autorisés
-                pXMLMvts = m_pXMLUtil->SelectSingleNode( "./MOUVEMENTS_AUTORISES", pXMLDocUpdate, (DOMElement*)pXMLCnx);
-                if(pXMLMvts)
-                {
-                    pCAF->m_mapMvtAutorises.clear();
-                    if(!LoadMouvementsAutorises( pCAF, pXMLMvts, m_pLogger))
-                        return false;
-                    pCAF->ReInit(pXMLCnx, m_pLogger);
-                }
-            }
-        }
-    }
-
-    pXMLTrafic = m_pXMLUtil->SelectSingleNode("TRAFICS/TRAFIC[@id=\"" + m_TraficID + "\"]", pXMLDocUpdate, (DOMElement*)pXMLRoot);
-
-    //-----------------------------------
-    // Noeud extremités et parkings
-    //-----------------------------------
-    // Récupération du noeud TRAFIC/EXTREMITES et TRAFIC/PARKINGS
-    DOMXPathResult * pXMLExtremites = m_pXMLUtil->SelectNodes( "EXTREMITES | PARKINGS | ZONES_DE_TERMINAISON", pXMLDocUpdate, (DOMElement*)pXMLTrafic);
-    XMLSize_t countExtr = pXMLExtremites->getSnapshotLength();
-    for(XMLSize_t iExtr=0; iExtr<countExtr; iExtr++)
-    {
-        pXMLExtremites->snapshotItem(iExtr);
-        XMLSize_t counti = pXMLExtremites->getNodeValue()->getChildNodes()->getLength();
-        for(XMLSize_t i=0; i<counti;i++)
-        {
-            pXMLExtremite = pXMLExtremites->getNodeValue()->getChildNodes()->item(i);
-            if (pXMLExtremite->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-            // id
-            GetXmlAttributeValue(pXMLExtremite, "id", sTmp, m_pLogger);
-
-            char cOrigineType, cDestinationType;
-            pE = GetOrigineFromID( sTmp, cOrigineType );   // Recherche de l'origine correspondante
-
-            pS = GetDestinationFromID( sTmp, cDestinationType );   // Recherche de la destination correspondante
-
-            if(!pE && !pS)     // l'extremité n'existe pas
-            {
-                log() << Logger::Error << "ERROR update : the extremity " << sTmp << " doesn't exist ! " << std::endl;
-                log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                return false;
-            }
-
-
-            if(pE)
-            {
-                TypeVehicule * pTypeVehicle = NULL;
-                std::map<TypeVehicule *, DOMNode*> mapTypeFlux;
-                DOMNode* pXMlFluxGlobal = m_pXMLUtil->SelectSingleNode("./FLUX_GLOBAL/FLUX", pXMLExtremite->getOwnerDocument(), (DOMElement*)pXMLExtremite);
-                if( pXMlFluxGlobal )
-                {
-                    mapTypeFlux[NULL]= pXMlFluxGlobal;
-                }
-                else // obtient les flux par type si ils exsitent
-                {
-                     DOMNode* pXMlFluxParTypes = m_pXMLUtil->SelectSingleNode("./FLUX_TYPEVEHS", pXMLExtremite->getOwnerDocument(), (DOMElement*)pXMLExtremite);
-                     if( pXMlFluxParTypes )
-                    {
-                         XMLSize_t nFluxType =  pXMlFluxParTypes->getChildNodes()->getLength();
-                         // on parcours les flux pour tous les types de véhicule
-                         for (XMLSize_t iFluxType = 0; iFluxType < nFluxType; ++iFluxType)
-                         {
-                             DOMNode *pFluxNodeParType = pXMlFluxParTypes->getChildNodes()->item(iFluxType);
-                                // Obtient l'identifiant du Type de Vehicule
-                             string strTypeVeh = "";
-                             GetXmlAttributeValue(pFluxNodeParType, "id_typevehicule", strTypeVeh, m_pLogger);
-                             if ( GetVehicleTypeFromID(strTypeVeh) )
-                             {
-                                 mapTypeFlux[GetVehicleTypeFromID(strTypeVeh)] =  m_pXMLUtil->SelectSingleNode("./FLUX", pXMLExtremite->getOwnerDocument(), (DOMElement*)pFluxNodeParType);
-                             }
-                          }
-                     }
-                }
-                // on parcours les différents flux
-                std::map<TypeVehicule *, DOMNode*>::iterator itFlux;
-                for( itFlux = mapTypeFlux.begin(); itFlux != mapTypeFlux.end() ; itFlux++)
-                {
-                    pTypeVehicle = itFlux->first;
-                    DOMNode * pXMLFuxNode = itFlux->second;
-                    // -------------------
-                    // DEMANDES
-                    //--------------------
-                    pXMLDemandes = m_pXMLUtil->SelectSingleNode("./DEMANDES", pXMLExtremite->getOwnerDocument(), (DOMElement*)pXMLFuxNode);
-
-                    if(pXMLDemandes)
-                    {
-                        if(!(pE->IsTypeDemande() || pE->IsTypeDistribution()) )   // le type de création des véhicule n'est pas une demande
-                        {
-                            log() << Logger::Error << "ERROR update : the input " << sTmp << " doesn't have the right type of demand ! " << std::endl;
-                            log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                            m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                            return false;
-                        }
-
-                        // Suppresion des palliers de demande à partir du moment courant
-                        if( pTypeVehicle == NULL ) // cas global on supprime tout
-                        {
-                           std::map<TypeVehicule*, ListOfTimeVariation<tracked_double>* > lstDemande = pE->GetLstDemande();
-                           std::map<TypeVehicule*, ListOfTimeVariation<tracked_double>* >::iterator itDemande;
-                           for( itDemande =  lstDemande.begin(); itDemande != lstDemande.end(); itDemande ++)
-                           {
-                               EraseVariation((*itDemande).second->GetLstTV(), m_dbInstSimu, m_dbLag);
-                           }
-                        }
-                        else
-                        {
-                            EraseVariation( pE->GetLstDemande(pTypeVehicle)->GetLstTV(), m_dbInstSimu, m_dbLag);
-                        }
-
-                        // Mise à jour des nouvelles demandes
-                        XMLSize_t countj = pXMLDemandes->getChildNodes()->getLength();
-                        for(XMLSize_t j=0; j<countj;j++)
-                        {
-                            DOMNode * xmlnode = pXMLDemandes->getChildNodes()->item(j);
-                            if (xmlnode->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-                            // Chargement de la variante temporelle de la demande
-                            vector<PlageTemporelle*> plages;
-                            if(!GetXmlDuree(xmlnode,this,dbDuree, plages, m_pLogger))
-                            {
-                                m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                                return false;
-                            }
-
-                            boost::shared_ptr<tracked_double> pTrackedDouble = boost::make_shared<tracked_double>();
-                            GetXmlAttributeValue(xmlnode, "niveau", *pTrackedDouble, m_pLogger);
-
-
-                            if(plages.size() > 0)
-                            {
-                                for(size_t iPlage = 0; iPlage < plages.size(); iPlage++)
-                                {
-                                    AddVariation<>( plages[iPlage], pTrackedDouble, pE->GetLstDemande(pTypeVehicle)->GetLstTV());
-                                }
-                            }
-                            else
-                            {
-                                AddVariation<>( dbDuree, pTrackedDouble, pE->GetLstDemande(pTypeVehicle)->GetLstTV());
-                            }
-                            if( pTypeVehicle == NULL ) // cas global on affecte à tous les types
-                            {
-                                for( size_t iTypeV = 0; iTypeV < m_LstTypesVehicule.size() ; ++iTypeV)
-                                {
-                                    if(plages.size() > 0)
-                                    {
-                                        for(size_t iPlage = 0; iPlage < plages.size(); iPlage++)
-                                        {
-                                            AddVariation<>( plages[iPlage], pTrackedDouble, pE->GetLstDemande(m_LstTypesVehicule[i])->GetLstTV());
-                                        }
-                                    }
-                                    else
-                                    {
-                                        AddVariation<>( dbDuree, pTrackedDouble, pE->GetLstDemande(m_LstTypesVehicule[i])->GetLstTV());
-                                    }
-                                }
-                            }
-                        }
-
-                        // vérification de la couverture de l'ensemble de la simulation
-
-                        vector<PlageTemporelle*> plages;
-                        for(size_t iPlage = 0; iPlage < pE->GetLstDemande(pTypeVehicle)->GetLstTV()->size(); iPlage++)
-                        {
-                            PlageTemporelle * pPlage = pE->GetLstDemande(pTypeVehicle)->GetLstTV()->at(iPlage).m_pPlage;
-                            if(pPlage)
-                            {
-                                plages.push_back(pPlage);
-                            }
-                        }
-                        if(plages.size() > 0 && !CheckPlagesTemporellesEx(m_dbDureeSimu, plages))
-                        {
-                            log() << Logger::Error << "ERROR : The time frames defined for the demand of input " << pE->GetOutputID() << " don't cover the whole simulation duration ! " << std::endl;
-                            log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                            m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                            return false;
-                        }
-
-                    }
-
-                    // -------------------
-                    // MATRICES_OD
-                    //--------------------
-
-                    {
-                        if(IsUsedODMatrix())
-                        {
-                            // Matrices OD de l'entrée considérée
-                            DOMNode *pXMLRepDestinations;
-                            DOMNode *pXMLRepDestination;
-                            VectDest*               pVectDest;
-                            SymuViaTripNode*        pDestination;
-
-                            pXMLRepDestinations = m_pXMLUtil->SelectSingleNode( "./REP_DESTINATIONS", pXMLDocUpdate, (DOMElement*)pXMLFuxNode);
-
-                            if(pXMLRepDestinations)
-                            {
-                                XMLSize_t countj = pXMLRepDestinations->getChildNodes()->getLength();
-                                for(XMLSize_t j=0; j<countj; j++)
-                                {
-                                    pXMLRepDestination = pXMLRepDestinations->getChildNodes()->item(j);
-                                    if (pXMLRepDestination->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-                                    if( pTypeVehicle == NULL  ) // cas global on affecte  à tous les types
-                                    {
-                                        std::map<TypeVehicule*, std::deque<TimeVariation<SimMatOrigDest> > >::iterator iterCoeffDest;
-                                        for(iterCoeffDest = pE->GetLstCoeffDest().begin(); iterCoeffDest != pE->GetLstCoeffDest().end(); iterCoeffDest++)
-                                        {
-                                            EraseVariation(&iterCoeffDest->second, m_dbInstSimu, m_dbLag);
-                                        }
-                                     }
-                                     else
-                                     {
-                                           EraseVariation(&pE->GetLstCoeffDest(pTypeVehicle ), m_dbInstSimu, m_dbLag);
-                                     }
-
-                                    // Duree
-                                    vector<PlageTemporelle*> plages;
-                                    if(!GetXmlDuree(pXMLRepDestination,this,dbDuree,plages, m_pLogger))
-                                    {
-                                        m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                                        return false;
-                                    }
-
-                                    boost::shared_ptr<SimMatOrigDest> pMatOrigDest = boost::make_shared<SimMatOrigDest>();
-
-                                    // Destinations
-                                    double dbSum = 0;
-                                    XMLSize_t countk = pXMLRepDestination->getChildNodes()->getLength();
-                                    for(XMLSize_t k=0; k<countk; k++)
-                                    {
-                                        DOMNode * xmlnode = pXMLRepDestination->getChildNodes()->item(k);
-                                        if (xmlnode->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-                                        // Destination
-                                        GetXmlAttributeValue(xmlnode, "sortie", sTmp, m_pLogger);
-                                        char cDestinationType;
-                                        pDestination = GetDestinationFromID(sTmp, cDestinationType);
-
-                                        // Correction bug n°39 : prévention du plantage si la destination n'est pas en aval d'un tronçon
-                                        if(!pDestination)
-                                        {
-                                            log() << Logger::Error << "ERROR : the destination " << sTmp << " in not correctly defined (the corresponding extremity might not be declared as the downstream node of a link ?)" << std::endl;
-                                            log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                                            return false;
-                                        }
-
-                                        pE->AddDestinations(pDestination);
-
-                                        // Coefficient d'affectation
-                                        GetXmlAttributeValue(xmlnode, "coeffOD", dbTmp, m_pLogger);
-                                        dbSum += dbTmp;
-
-                                        pVectDest = new VectDest;
-                                        pVectDest->pDest = pDestination;
-                                        pVectDest->dbCoeff = dbTmp;
-                                        pMatOrigDest->MatOrigDest.push_back(pVectDest);
-
-                                        if(k == countk-1)
-                                        {
-                                            // Vérification de la somme des coefficients
-                                            if( fabs(dbSum-1) > countk*std::numeric_limits<double>::epsilon())
-                                            {
-                                                log() << Logger::Error << "ERROR update : the coefficients sum for all destinations of the input " << pE->GetOutputID() << " - variation " << j <<" of the element MATRICE_OD - " << " must be equal to 1" << std::endl;
-                                                log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                                                m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                                                return false;
-                                            }
-                                        }
-                                    }
-
-                                    // Ajout de la matrice avec sa durée à la liste des matrices de l'entrée
-
-                                    if(plages.size() > 0)
-                                    {
-                                        for(size_t iPlage = 0; iPlage < plages.size(); iPlage++)
-                                        {
-                                            AddVariation<>( plages[iPlage], pMatOrigDest, &pE->GetLstCoeffDest(pTypeVehicle) );
-                                        }
-                                    }
-                                    else
-                                    {
-                                        AddVariation<>( dbDuree, pMatOrigDest, &pE->GetLstCoeffDest(pTypeVehicle) );
-                                    }
-                                    if( pTypeVehicle == NULL  ) // cas global on affecte  à tous les types
-                                    {
-                                        for( int iTypeV =0; iTypeV != m_LstTypesVehicule.size(); iTypeV++)
-                                        {
-                                            if(plages.size() > 0)
-                                            {
-                                                for(size_t iPlage = 0; iPlage < plages.size(); iPlage++)
-                                                {
-                                                    AddVariation<>( plages[iPlage], pMatOrigDest, &pE->GetLstCoeffDest(m_LstTypesVehicule[i]) );
-                                                }
-                                            }
-                                            else
-                                            {
-                                                AddVariation<>( dbDuree, pMatOrigDest, &pE->GetLstCoeffDest(m_LstTypesVehicule[i]) );
-                                            }
-                                        }
-                                    }
-
-                                } // rof all matrices
-
-                                // vérification de la couverture des plages temporelles poour chaque type de véhicule
-                                for(size_t iTV = 0; iTV < m_LstTypesVehicule.size(); iTV++)
-                                {
-                                    vector<PlageTemporelle*> plages;
-                                    for(size_t iPlage = 0; iPlage < pE->GetLstCoeffDest(m_LstTypesVehicule[iTV]).size(); iPlage++)
-                                    {
-                                        PlageTemporelle * pPlage = pE->GetLstCoeffDest(m_LstTypesVehicule[iTV])[iPlage].m_pPlage;
-                                        if(pPlage)
-                                        {
-                                            plages.push_back(pPlage);
-                                        }
-                                    }
-                                    if(plages.size() > 0 && !CheckPlagesTemporellesEx(m_dbDureeSimu, plages))
-                                    {
-                                        log() << Logger::Error << "ERROR : The time frames defined for the REP_DESTINATION node of the input " << pE->GetOutputID() << " don't cover the whole simulation duration for vehicle type " << m_LstTypesVehicule[iTV]->GetLabel() << std::endl;
-                                        log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                                        m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                                        return false;
-                                    }
-                                }
-                            }
-                        }
-                    } // fi node matrice od
-                    //---------------------
-                    // REPARTITIONS_VOIE
-                    //---------------------
-                    DOMNode *pXMLRepartitionsVoie = m_pXMLUtil->SelectSingleNode( "./REP_VOIES", pXMLDocUpdate, (DOMElement*)pXMLFuxNode);
-
-                    if(pXMLRepartitionsVoie)
-                    {
-
-                        // Suppression des variantes chargées
-
-                       EraseVariation(pE->GetLstRepVoie(pTypeVehicle), m_dbInstSimu, m_dbLag);
-                       if( pTypeVehicle == NULL ) // cas global -> on supprime tous les types
-                       {
-                            for( int iTypeV =0; iTypeV != m_LstTypesVehicule.size(); iTypeV++)
-                            {
-                               EraseVariation(pE->GetLstRepVoie(m_LstTypesVehicule[i]), m_dbInstSimu, m_dbLag);
-                            }
-                       }
-
-                        XMLSize_t countj = pXMLRepartitionsVoie->getChildNodes()->getLength();
-                        for(XMLSize_t j=0; j<countj;j++)
-                        {
-                            DOMNode * xmlnode = pXMLRepartitionsVoie->getChildNodes()->item(j);
-                            if (xmlnode->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-                            std::vector<double> pCoeff;
-                            boost::shared_ptr<RepartitionEntree> pRE = boost::make_shared<RepartitionEntree>();
-                            // Durée
-                            vector<PlageTemporelle*> plages;
-                            if(!GetXmlDuree(xmlnode,this,dbDuree,plages, m_pLogger))
-                            {
-                                m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                                return false;
-                            }
-
-                            // Valeurs
-                            GetXmlAttributeValue(xmlnode, "coeffs", sTmp, m_pLogger);
-                            std::deque<std::string> split = SystemUtil::split(sTmp, ' ');
-                            if( split.size() !=  pE->GetOutputConnexion()->m_LstTuyAv.front()->getNbVoiesDis())
-                            {
-                                log() << Logger::Error << "ERROR update : the number of values of the 'valeurs' attribute of the REPARTITION_VOIE node (origin : " << pE->GetOutputID();
-                                log() << Logger::Error << " - repartition : "<< j+1 <<  " ) is invalid (it must be the same as the number of lanes of the link " << pE->GetOutputConnexion()->m_LstTuyAv.front()->GetLabel() <<").";
-                                log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                                m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                                return false;
-                            }
-                            double dbS = 0;
-                            for(int k=0; k<pE->GetOutputConnexion()->m_LstTuyAv.front()->getNbVoiesDis();k++)
-                            {
-                                pCoeff.push_back(atof( split.at(k).c_str() ));
-                                dbS += pCoeff[k];
-                            }
-                            if( fabs(dbS - 1) > 0.000001 )
-                            {
-                                log() << Logger::Error << "ERROR update : the values of attribute 'valeurs' of the REPARTITION_VOIE node (origin : " << pE->GetOutputID();
-                                log() << Logger::Error << " - repartition : "<< j+1 <<  " ) are invalid (the sum must be 1) ";
-                                log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                                m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                                return false;
-                            }
-                            pRE->pCoefficients = pCoeff;
-
-                            if(plages.size() > 0)
-                            {
-                                for(size_t iPlage = 0; iPlage < plages.size(); iPlage++)
-                                {
-                                    AddVariation(plages[iPlage], pRE, pE->GetLstRepVoie(pTypeVehicle));
-                                }
-                            }
-                            else
-                            {
-                                AddVariation(dbDuree, pRE, pE->GetLstRepVoie(pTypeVehicle));
-                            }
-                            if( pTypeVehicle == NULL )
-                            { // affecte à tous les types
-
-                                 if(plages.size() > 0)
-                                {
-                                    for( int iTypeV =0; iTypeV != m_LstTypesVehicule.size(); iTypeV++)
-                                    {
-                                        for(size_t iPlage = 0; iPlage < plages.size(); iPlage++)
-                                        {
-                                            AddVariation(plages[iPlage], pRE, pE->GetLstRepVoie(m_LstTypesVehicule[i]));
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    for( int iTypeV =0; iTypeV != m_LstTypesVehicule.size(); iTypeV++)
-                                    {
-                                        AddVariation(dbDuree, pRE, pE->GetLstRepVoie(m_LstTypesVehicule[i]));
-                                    }
-                                }
-                            }
-                        }
-
-                        // vérification de la couverture des plages temporelles
-                        vector<PlageTemporelle*> plages;
-                        for(size_t iPlage = 0; iPlage < pE->GetLstRepVoie(pTypeVehicle)->size(); iPlage++)
-                        {
-                            PlageTemporelle * pPlage = pE->GetLstRepVoie(pTypeVehicle)->at(iPlage).m_pPlage;
-                            if(pPlage)
-                            {
-                                plages.push_back(pPlage);
-                            }
-                        }
-                        if(plages.size() > 0 && !CheckPlagesTemporellesEx(m_dbDureeSimu, plages))
-                        {
-                            log() << Logger::Error << "ERROR : The time frames defined for the input lanes repartition for input " << pE->GetOutputID() << " don't cover the whole simulation duration !" << std::endl;
-                            log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                            m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                            return false;
-                        }
-                    }
-                } // rof all flux node
-
-
-                // ** Traitement de la répartition des véhicules
-                int nTypes = (int)m_LstTypesVehicule.size();
-                int nNbVoie;
-                if(cOrigineType == 'Z')
-                {
-                    // cas de la zone : une seule liste de coeffs
-                    nNbVoie = 1;
-                }
-                else
-                {
-                    pT = pE->GetOutputConnexion()->m_LstTuyAv.front();
-                    nNbVoie = pT->getNbVoiesDis();
-                }
-                if( pXMlFluxGlobal ) // la répartition est définie globalement
-                {
-                    // Chargement
-                    // Traitement des répartition de typeVéhicules uniquement pour les flux "globaux"
-                    DOMNode *pXMLRepartitions = m_pXMLUtil->SelectSingleNode( "./REP_TYPEVEHICULES", pXMlFluxGlobal->getOwnerDocument(), (DOMElement*)pXMlFluxGlobal->getParentNode());
-
-                    // Suppression des variantes chargées
-                    pE->GetLstRepTypeVeh()->ClearFrom(m_dbInstSimu, m_dbLag);
-                    if( pXMLRepartitions)
-                    {
-                        std::vector<TypeVehicule*> placeHolder;
-                        if(!LoadRepTypeVehicules(pXMLRepartitions, pE->GetOutputID(), nNbVoie, placeHolder, pE->GetLstRepTypeVeh(), &log()))
-                        {
-                            return false;
-                        }
-
-                        // Ajout des types de véhicules au tronçon
-                        for(size_t iTuy = 0; iTuy < pE->GetOutputConnexion()->m_LstTuyAv.size(); iTuy++)
-                        {
-                            for(size_t k=1; k<m_LstTypesVehicule.size();k++)      // Ajout des autres types de véhicule que le type de base
-                                pE->GetOutputConnexion()->m_LstTuyAv[iTuy]->AddTypeVeh(m_LstTypesVehicule[k]);
-                        }
-                    }
-                    else // rien n'a été défini (seul des vehicules de type de base seront générés)
-                    {
-                        int nNbVoie;
-                        if(cOrigineType == 'Z')
-                        {
-                            // cas de la zone : une seule liste de coeffs
-                            nNbVoie = 1;
-                        }
-                        else
-                        {
-                            pT = pE->GetOutputConnexion()->m_LstTuyAv.front();
-                            nNbVoie = pT->getNbVoiesDis();
-                        }
-
-                        std::vector<std::vector<double> > coeffs(nTypes);
-
-                        for(int j=0; j<nTypes; j++)
-                        {
-                            coeffs[j].resize(nNbVoie);
-                            // Par defaut on ne sort que le premier type
-                            for( int iCoeffWay = 0; iCoeffWay < nNbVoie; ++iCoeffWay)
-                            {
-                                coeffs[j][iCoeffWay]=(j==0)?(1.0):0;
-                            }
-                        }
-
-                        pE->GetLstRepTypeVeh()->AddVariation(coeffs, m_dbDureeSimu);
-                    } // fi else il n'y a pas de noeud rep_vehiculeparType
-                } // fi on est dans un cas global
-                  // Fin traitement REP_TYPEVEHICULES
-                else
-                { // sinon on n'est pas dans une distribution globale -> on déduit les répartitions des débits par type de véhicules
-                    double dSumDuree= 0;
-                    // construit la liste des durées des demandes des différents type de véhicule
-                    std::map<TypeVehicule *, ListOfTimeVariation<tracked_double>*> demandesInit = pE->GetLstDemandeInit();
-                    std::map<TypeVehicule *, ListOfTimeVariation<tracked_double>*>::iterator itDemande;
-                    std::list<double> durees;
-                    std::list<double>::const_iterator itDuree;
-                    bool bIsPlage = false;
-                    for( itDemande = demandesInit.begin(); itDemande != demandesInit.end(); itDemande++)
-                    {
-                        size_t nDuree = itDemande->second->GetLstTV()->size();
-                        dSumDuree = 0;
-                        for( size_t iDuree = 0; iDuree< nDuree; ++iDuree )
-                        {
-                            if( itDemande->second->GetLstTV()->at(iDuree).m_pPlage == NULL)
-                            {
-                                dSumDuree += itDemande->second->GetLstTV()->at(iDuree).m_dbPeriod;
-                                durees.push_back(dSumDuree);
-
-                            }
-                            else
-                            {
-                                durees.push_back(itDemande->second->GetLstTV()->at(iDuree).m_pPlage->m_Debut);
-                                durees.push_back(itDemande->second->GetLstTV()->at(iDuree).m_pPlage->m_Fin);
-                                bIsPlage = true;
-                            }
-                        }
-                    }
-                    // construit la lsite des durées des répartitions par voies des différentes type de véhicule
-                    std::map<TypeVehicule*, std::deque<TimeVariation<RepartitionEntree> >* > repVoiesInit = pE->GetLstRepVoieInit();
-                    std::map<TypeVehicule*, std::deque<TimeVariation<RepartitionEntree> >* >::iterator itRepVoie;
-                    for( itRepVoie = repVoiesInit.begin(); itRepVoie != repVoiesInit.end(); itRepVoie++)
-                    {
-                        size_t nDuree = itRepVoie->second->size();
-                        dSumDuree = 0;
-                        for( size_t iDuree = 0; iDuree< nDuree; ++iDuree )
-                        {
-                            if( itRepVoie->second->at(iDuree).m_pPlage == NULL)
-                            {
-                                dSumDuree += itRepVoie->second->at(iDuree).m_dbPeriod;
-                                durees.push_back(dSumDuree);
-                            }
-                            else
-                            {
-                                durees.push_back(itRepVoie->second->at(iDuree).m_pPlage->m_Debut);
-                                durees.push_back(itRepVoie->second->at(iDuree).m_pPlage->m_Fin);
-                                bIsPlage = true;
-                            }
-                        }
-                    }
-
-                    durees.sort();
-                    durees.unique(); // need a sorted list
-
-                    // On vire les instants négatifs le cas échéant en les remplacant par 0 (sinon GetVariationEx
-                    // sur un durée négative renvoie null)
-                    bool bAddStartSimulationTime = false;
-                    while (!durees.empty() && durees.front() < 0)
-                    {
-                        durees.pop_front();
-                        bAddStartSimulationTime = true;
-                    }
-                    if (bAddStartSimulationTime)
-                    {
-                        durees.push_front(0.0);
-                    }
-
-                    int nNbVoie;
-                    if(cOrigineType == 'Z')
-                    {
-                        // cas de la zone : une seule liste de coeffs
-                        nNbVoie = 1;
-                    }
-                    else
-                    {
-                        pT = pE->GetOutputConnexion()->m_LstTuyAv.front();
-                        nNbVoie = pT->getNbVoiesDis();
-                    }
-
-                    // pour chaque duree on lui associe des repartition partype d'aprés les demandes
-                    dSumDuree = 0;
-                    std::list<double>::const_iterator itEnd = durees.end();
-                    if( durees.size()>1 && bIsPlage )
-                    {
-                        itEnd--;
-                    }
-                    for( itDuree =durees.begin(); itDuree != itEnd; itDuree++)
-                    {
-
-                        std::vector<std::vector<double> > coeffs(nTypes);
-                        std::vector<double> sumPerType;
-                        for( int i = 0; i< nNbVoie; ++i)
-                        {
-                            sumPerType.push_back(0);
-                        }
-                        for( size_t iTypeVeh = 0; iTypeVeh < m_LstTypesVehicule.size() ;  ++iTypeVeh )
-                        {
-                            coeffs[iTypeVeh].resize(nNbVoie);
-                            if( demandesInit.find(m_LstTypesVehicule[iTypeVeh] ) != demandesInit.end() &&
-                                demandesInit.find(m_LstTypesVehicule[iTypeVeh] )->second->GetVariationEx(*itDuree) )
-                            {
-                                double dCoeff = *demandesInit.find(m_LstTypesVehicule[iTypeVeh] )->second->GetVariationEx(*itDuree);
-
-                                // module par repartition par voie
-                                RepartitionEntree* pREType = NULL;
-                                if( repVoiesInit.find(m_LstTypesVehicule[iTypeVeh]) != repVoiesInit.end())
-                                {
-                                    pREType = GetVariation(*itDuree, repVoiesInit.find(m_LstTypesVehicule[iTypeVeh])->second, GetLag()); // le debit d'entrée est considéré "globalement"
-                                }
-                                double dVoieCoeff = 1.0 / nNbVoie;
-
-                                for( int iCoeffWay = 0; iCoeffWay < nNbVoie; ++iCoeffWay)
-                                {
-                                     if( pREType )
-                                    {
-                                        std::vector<double> pCoeffType = pREType->pCoefficients;
-                                        dVoieCoeff = pCoeffType[iCoeffWay ];
-                                    }
-
-                                     coeffs[iTypeVeh][iCoeffWay]=dCoeff *dVoieCoeff;
-                                     sumPerType[iCoeffWay] += dCoeff *dVoieCoeff;
-                                }
-                            }
-                            else
-                            {
-                                for( int iCoeffWay = 0; iCoeffWay < nNbVoie; ++iCoeffWay)
-                                {
-                                     coeffs[iTypeVeh][iCoeffWay]=0;
-                                }
-                            }
-                        }
-                        // on norme les coefficients par voie
-                        for( size_t iTypeVeh = 0; iTypeVeh < m_LstTypesVehicule.size() ;  ++iTypeVeh )
-                        {
-                            for( int iCoeffWay = 0; iCoeffWay < nNbVoie; ++iCoeffWay)
-                            {
-                               coeffs[iTypeVeh][iCoeffWay]= (sumPerType[iCoeffWay]!=0)? coeffs[iTypeVeh][iCoeffWay] /sumPerType[iCoeffWay] : 0 ;
-                            }
-                        }
-                        // on ajoute la repartion ainsi créée
-                        if( bIsPlage == false)
-                        {
-                            pE->GetLstRepTypeVeh()->AddVariation(coeffs, *itDuree - dSumDuree); // gestion "globale par type"
-                        }
-                        else
-                        {
-                            std::list<double>::const_iterator itDureeEnd  = itDuree;
-                            itDureeEnd++;
-
-                            PlageTemporelle *pPlage =  PlageTemporelle::Set( *itDuree + m_dtDebutSimu.ToSecond(),*itDureeEnd + m_dtDebutSimu.ToSecond(), m_LstPlagesTemporelles , m_dtDebutSimu.ToSecond() );
-                            pE->GetLstRepTypeVeh()->AddVariation(coeffs, pPlage); // gestion "globale par type"
-                        }
-
-                        dSumDuree = *itDuree;
-                    }
-
-                }
-                Sortie * pTypedS = dynamic_cast<Sortie*>(pS);
-                if(pTypedS)
-                {
-                // -------------------
-                // CAPACITES
-                //--------------------
-                   pXMLCapacites = m_pXMLUtil->SelectSingleNode( "./CAPACITES", pXMLDocUpdate, (DOMElement*)pXMLExtremite);
-
-                    if(pXMLCapacites)
-                    {
-                        // Suppression des variantes chargées
-                        pTypedS->GetLstCapacites()->RemoveVariations();
-
-                        for(XMLSize_t j=0; j<pXMLCapacites->getChildNodes()->getLength();j++) // La capacité évolue au cours de la simulation
-                        {
-                            DOMNode * xmlnode = pXMLCapacites->getChildNodes()->item(j);
-                            if (xmlnode->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-                            vector<PlageTemporelle*> plages;
-                            if(!GetXmlDuree(xmlnode,this,dbDuree,plages, m_pLogger))
-                            {
-                                m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                                return false;
-                            }
-                            boost::shared_ptr<tracked_double> pdbTmp = boost::make_shared<tracked_double>();
-                            GetXmlAttributeValue(xmlnode, "valeur", *pdbTmp, m_pLogger);      // capacité
-                            if(plages.size() > 0)
-                            {
-                                for(size_t iPlage = 0; iPlage < plages.size(); iPlage++)
-                                {
-                                    pTypedS->GetLstCapacites()->AddVariation(plages[iPlage], pdbTmp );
-                                }
-                            }
-                            else
-                            {
-                                pTypedS->GetLstCapacites()->AddVariation(dbDuree, pdbTmp );
-                            }
-                        }
-
-                        // vérification de la couverture des plages temporelles
-                        if(!pTypedS->GetLstCapacites()->CheckPlagesTemporelles(m_dbDureeSimu))
-                        {
-                            log() << Logger::Error << "ERROR : The time frames defined for the capacity of the output " << pTypedS->GetInputID() << " don't cover the whole simulation duration !" << std::endl;
-                            log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                            m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                            return false;
-                        }
-
-                        // Remise à jour du prochain instant de sortie en fonction de la nouvelle capacité
-                        double dbNextInstSortie = pS->GetNextEnterInstant( pTypedS->GetInputConnexion()->m_LstTuyAm.front()->getNbVoiesDis(), m_dbInstSimu, m_dbInstSimu, GetTimeStep(), std::string() );
-                        for(int j=0; j<pTypedS->GetInputConnexion()->m_LstTuyAm.front()->getNbVoiesDis(); j++)
-                            ((VoieMicro*)pTypedS->GetInputConnexion()->m_LstTuyAm.front()->GetLstLanes()[j])->GetNextInstSortie()[std::string()] = dbNextInstSortie;
-                    }
-                }
-            } // fi PE
-        }
-    }
-
-    //----------------------
-    // Noeud CONNEXIONS_INTERNES
-    //----------------------
-    DOMNode * pXMLCnxInternes = m_pXMLUtil->SelectSingleNode( "CONNEXIONS_INTERNES", pXMLDocUpdate, (DOMElement*)pXMLTrafic);
-    if(pXMLCnxInternes)
-    {
-        XMLSize_t counti = pXMLCnxInternes->getChildNodes()->getLength();
-        for(XMLSize_t i=0; i<counti;i++)
-        {
-            pXMLRepartiteur = pXMLCnxInternes->getChildNodes()->item(i);
-            if (pXMLRepartiteur->getNodeType() != DOMNode::ELEMENT_NODE)
-                continue;
-
-            // id
-            GetXmlAttributeValue(pXMLRepartiteur, "id", sTmp, m_pLogger);
-
-            pR = (Repartiteur*)GetConnectionFromID( sTmp, cType );   // Recherche de l'entré correspondante
-
-            if(cType != 'R')     // le répartiteur n'existe pas
-            {
-                log() << Logger::Error << "ERROR update : the repartitor " << sTmp << " doesn't exist !" << std::endl;
-                log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
-                m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-                return false;
-            }
-
-
-            if( !IsUsedODMatrix() )
-            {
-                // Suppression des variantes de flux chargées
-                for (std::map<TypeVehicule*, std::deque<TimeVariation<RepartitionFlux> >* >::iterator iterTypeVeh = pR->GetLstRepartition().begin(); iterTypeVeh != pR->GetLstRepartition().end(); ++iterTypeVeh)
-                {
-                    EraseVariation(iterTypeVeh->second, m_dbInstSimu, m_dbLag);
-                    delete iterTypeVeh->second;
-                }
-                pR->GetLstRepartition().clear();
-
-                // Création des nouvelles répartitions
-                BuildRepartitionFlux(pR, pXMLDocUpdate, m_pLogger);
-            }
-        }
-    }
-    pXMLExtremites->release();
-
-    //----------------------
-    // Noeud CONTROLEURS_DE_FEUX
-    //----------------------
-
-    ControleurDeFeux *pCtrDeFeux;
-    DOMNode *pXMLNode = m_pXMLUtil->SelectSingleNode( "CONTROLEURS_DE_FEUX", pXMLDocUpdate, (DOMElement*)pXMLTrafic);
-
-    if(pXMLNode)
-    {
-        // Lecture de la définition des contrôleurs de feux
-        XMLSize_t counti = pXMLNode->getChildNodes()->getLength();
-        for(XMLSize_t i=0; i<counti;i++)
-        {
-            DOMNode * pXMLCtrlDeFeux = pXMLNode->getChildNodes()->item(i);
-            if (pXMLCtrlDeFeux->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-            // Lecture de l'identifiant du contrôleur
-            GetXmlAttributeValue(pXMLCtrlDeFeux, "id", sTmp, m_pLogger);
-
-            // Recherche du contrôleur de feux
-            pCtrDeFeux = GetTrafficLightControllerFromID(sTmp);
-
-            if(!pCtrDeFeux)
-                break;
-
-            // Lecture de la durée de rouge de dégagement
-            double dbDureeRougeDegagement;
-            GetXmlAttributeValue(pXMLCtrlDeFeux, "duree_rouge_degagement", dbDureeRougeDegagement, m_pLogger);
-
-            // Lecture de la durée de vert minimum
-            double dbDureeVertMin;
-            GetXmlAttributeValue(pXMLCtrlDeFeux, "duree_vert_min", dbDureeVertMin, m_pLogger);
-
-            // MAJ des caractéristiques du CDF
-            pCtrDeFeux->SetDureeRougeDegagement(dbDureeRougeDegagement);
-            pCtrDeFeux->SetDureeVertMin(dbDureeVertMin);
-
-            // MAJ des plans de feux
-            DOMNode * pXMLPlansDeFeux = m_pXMLUtil->SelectSingleNode( "PLANS_DE_FEUX", pXMLDocUpdate, (DOMElement*)pXMLCtrlDeFeux);
-            if(pXMLPlansDeFeux)
-            {
-                XMLSize_t countj = pXMLPlansDeFeux->getChildNodes()->getLength();
-                for(XMLSize_t j=0; j<countj;j++)
-                {
-                    DOMNode * xmlnode = pXMLPlansDeFeux->getChildNodes()->item(j);
-                    if (xmlnode->getNodeType() != DOMNode::ELEMENT_NODE) continue;
-
-                    // ID
-                    char strID[64];
-                    GetXmlAttributeValue(xmlnode, "id", sTmp, m_pLogger);
-                    strcpy(strID, sTmp.c_str());
-
-                    // Heure de début
-                    STime dtDebut;
-                    SDateTime dt;
-                    GetXmlAttributeValue(xmlnode, "debut", dt, m_pLogger);
-                    dtDebut = dt.ToTime();
-
-                    // Recherche du plan de feux identifié par son ID
-                    PlanDeFeux *pPlanDeFeux = NULL;
-                    for(int nPDF =0; nPDF < (int)pCtrDeFeux->GetLstTrafficLightCycles()->GetLstTV()->size(); nPDF++ )
-                        if( !pCtrDeFeux->GetLstTrafficLightCycles()->GetVariation(nPDF)->GetID().compare(strID))
-                        {
-                            pPlanDeFeux = pCtrDeFeux->GetLstTrafficLightCycles()->GetVariation(nPDF);
-                            break;
-                        }
-                     if(!pPlanDeFeux)
-                     {
-
-                        pPlanDeFeux = new PlanDeFeux(strID, dtDebut);
-
-                        // Ajout au contrôleur de feux
-                        pCtrDeFeux->GetLstTrafficLightCycles()->AddVariation( dtDebut, pPlanDeFeux);
-                     }
-                     else
-                     {
-                        pPlanDeFeux->m_tHrDeb = dtDebut;
-                     }
-
-                    pPlanDeFeux->RemoveAllSequences();
-                    this->LoadDataPlanDeFeux( pCtrDeFeux, pPlanDeFeux, xmlnode, m_pLogger);
-                }
-            }
-        }
-    }
-
-    if(pXMLDocUpdate) {
-        m_pXMLUtil->CleanLoadDocument(pXMLDocUpdate);
-
-        // En cas d'update, il faut relancer l'affectation (modifications possible des povuements autorisés, matrices OD, demandes,
-        // etc...)
-        m_pModuleAffectation->Run(this, m_dbInstSimu, 'R', false);
-    }
-
-    return true;
-}
-
-//=================================================================
     double Reseau::LoadLagOfVariation
 //----------------------------------------------------------------
 // Fonction  : Chargement du 'lag' des variations des données
@@ -11235,157 +9108,6 @@ const std::string & ssID
         tsLag = 0;
 
     return (double)tsLag.GetTotalSeconds();
-}
-
-//=================================================================
-    std::string Reseau::GetLibelleTronconEve
-//----------------------------------------------------------------
-// Fonction  : Retourne le libellé d'une voie d'un tronçon au
-//             sens EVE
-// Remarque  :
-// Version du: 06/03/09
-// Historique: 06/03/09 (C.Bécarie - Tinea)
-//             Création
-//=================================================================
-(
-    Tuyau   *pTuyau,
-    int     nVoie           // numéroté à partir de 0
-)
-{
-    if(pTuyau->getNbVoiesDis() == 1)
-        return pTuyau->GetLabel();
-
-    return pTuyau->GetLabel() + "V" + SystemUtil::ToString(nVoie+1);
-}
-
-//=================================================================
-eveShared::EveTroncon * Reseau::CreateEveTroncon
-//----------------------------------------------------------------
-// Fonction  : Retourne un tronçon au sens d'EVE
-//
-// Remarque  :
-// Création  : 23/08/10
-//=================================================================
-(
-    const std::string &strID,
-    const Point& PtAm,
-    const Point& PtAv,
-    const std::deque<Point*>& lstPtInterne,
-    double dbLarg,
-    double dbLong,
-    const std::string& sSymTroncon,
-    int nSymVoie,
-    std::vector<ZoneZLevel> nzlevels,
-    bool bTronconInterne
-)
-{
-    eveShared::EveTroncon * pT = new eveShared::EveTroncon();
-    pT->id = strID;
-    pT->largeur = dbLarg;
-    pT->longueur = dbLong;
-    pT->sym_troncon = sSymTroncon;
-    pT->interne = bTronconInterne;
-    pT->sym_voie = nSymVoie;
-
-    double * pCoord;
-
-    pCoord = new double[3];
-    pCoord[0] = PtAm.dbX;
-    pCoord[1] = PtAm.dbY;
-    pCoord[2] = PtAm.dbZ;
-    pT->polyline.push_back(pCoord);
-
-    std::deque<Point*>::const_iterator itBeg, itEnd, itPt;
-    itBeg = lstPtInterne.begin();
-    itEnd = lstPtInterne.end();
-    for (itPt = itBeg; itPt != itEnd; itPt++)
-    {
-        pCoord = new double[3];
-        pCoord[0] = (*itPt)->dbX;
-        pCoord[1] = (*itPt)->dbY;
-        pCoord[2] = (*itPt)->dbZ;
-        pT->polyline.push_back(pCoord);
-    }
-
-    pCoord = new double[3];
-    pCoord[0] = PtAv.dbX;
-    pCoord[1] = PtAv.dbY;
-    pCoord[2] = PtAv.dbZ;
-    pT->polyline.push_back(pCoord);
-
-    for(size_t i = 0; i < nzlevels.size(); i++)
-    {
-        eveShared::LevelCrossing * pLvlCrossing = new eveShared::LevelCrossing;
-        pLvlCrossing->start = nzlevels[i].dbPosDebut;
-        pLvlCrossing->end = nzlevels[i].dbPosFin;
-        pLvlCrossing->zlevel = nzlevels[i].nZLevel;
-        pT->LevelCrossings.push_back(pLvlCrossing);
-    }
-
-
-    return pT;
-}
-
-//=================================================================
-    void Reseau::GenReseauCirculationFile
-//----------------------------------------------------------------
-// Fonction  : Génération du 'réseau circulation' - intégration EVE
-// Remarque  :
-// Version du: 23/08/10
-// Historique: 06/03/09 (C.Bécarie - Tinea)
-//             Création
-//=================================================================
-(
-    eveShared::EveNetwork * &pNetwork	// Classe du réseau EVE
-)
-{
-    if (pNetwork == NULL)
-    {
-        pNetwork = new eveShared::EveNetwork();
-    }
-    // Tronçons EVE
-    std::deque <Tuyau*>::iterator itTuy;
-    std::deque <Tuyau*>::iterator itTuyD = m_LstTuyaux.begin();
-    std::deque <Tuyau*>::iterator itTuyF = m_LstTuyaux.end();
-
-    for(itTuy = itTuyD; itTuy != itTuyF; itTuy++)
-    {
-        Tuyau*  pT = (*itTuy);
-        std::string sT = pT->GetLabel();
-        eveShared::EveTroncon * pET = NULL;
-        bool bTronconInterne = pT->GetBriqueParente() != NULL;
-
-        if(pT->getNbVoiesDis() == 1)
-        {
-            if( !bTronconInterne )   // Tronçon utilisateur
-                pET = CreateEveTroncon(sT, *pT->GetExtAmont(), *pT->GetExtAval(), pT->GetLstPtsInternes(), pT->getLargeurVoie(0), pT->GetLength(), sT, 1, pT->GetZLevelCrossings(), bTronconInterne );
-            else
-            {                               // Tronçon interne d'une brique
-                std::string sCnx = pT->GetBriqueParente()->GetID();
-                // on construit une zone de zLevel
-                ZoneZLevel zoneZLvl;
-                zoneZLvl.dbPosDebut = 0;
-                zoneZLvl.dbPosFin = pT->GetLength();
-                zoneZLvl.nZLevel = pT->GetBriqueParente()->GetZLevel();
-                std::vector<ZoneZLevel> lstZonesZLvl;
-                lstZonesZLvl.push_back(zoneZLvl);
-                pET = CreateEveTroncon(sT, *pT->GetExtAmont(), *pT->GetExtAval(), pT->GetLstPtsInternes(), pT->getLargeurVoie(0), pT->GetLength(), sT, 1, lstZonesZLvl, bTronconInterne );
-            }
-            pNetwork->eveTroncons[sT] = pET;
-        }
-        else
-        {
-            for(int i=0; i<pT->getNb_voies(); i++)
-            {
-                Voie *pV = pT->GetLstLanes()[i];
-
-                std::string sV = GetLibelleTronconEve(pT, i);
-
-                pET = CreateEveTroncon(sV, *pV->GetExtAmont(), *pV->GetExtAval(), pV->GetLstPtsInternes(), pT->getLargeurVoie(i), pV->GetLength(), sT, i+1, pT->GetZLevelCrossings(), bTronconInterne);
-                pNetwork->eveTroncons[sV] = pET;
-            }
-        }
-    }
 }
 
 int Reseau::SendSignalPlan(const std::string & sCDF, const std::string & sSP)
@@ -15878,45 +13600,6 @@ void Reseau::SaveControleurDeFeux(const std::deque<TraceDocTrafic *> &xmlDocTraf
             {
                 (*itDocTraf)->AddSimFeux( sCF, sTE, sTS, eEtat, bPremierInstCycle, bPrioritaire);
             }
-
-            if(m_SymMode == Reseau::SYM_MODE_STEP_EVE)
-            {
-                for(int k=0; k< cplES.pEntree->getNb_voies(); k++)
-                {
-                    std::string sTE = GetLibelleTronconEve(cplES.pEntree, k);
-
-                    CarrefourAFeuxEx *pCAF;
-                    pCAF = (CarrefourAFeuxEx*)cplES.pEntree->GetBriqueAval();
-
-                    if(pCAF)
-                    {
-                        bool bAuthorized = false;
-                        for(size_t typeVeh = 0; typeVeh < m_LstTypesVehicule.size() && !bAuthorized; typeVeh++)
-                        {
-                            bAuthorized = pCAF->IsMouvementAutorise(cplES.pEntree->GetVoie(k), cplES.pSortie, m_LstTypesVehicule[typeVeh], NULL);
-                        }
-                        if( bAuthorized )
-                        {
-                            for(int l=0; l< cplES.pSortie->getNb_voies(); l++)
-                            {
-                                std::string sTS = GetLibelleTronconEve(cplES.pSortie, l);
-                                for( itDocTraf = xmlDocTrafics.begin(); itDocTraf != xmlDocTrafics.end(); ++itDocTraf)
-                                {
-                                    (*itDocTraf)->AddSimFeuxEVE( sCF, sTE, sTS, eEtat, bPremierInstCycle, bPrioritaire);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            /**m_pFicSimulation << "CDF : " << pCF->GetLabel() << " - origine : " << pCF->GetLstCoupleEntreeSortie()[j].pEntree->GetLabel() << " - destination : " <<  pCF->GetLstCoupleEntreeSortie()[j].pSortie->GetLabel();
-            if(eEtat == FEU_VERT)
-            {
-                *m_pFicSimulation << " - feux : 1 " << std::endl;
-            }
-            else
-                *m_pFicSimulation << " - feux : 0 " << std::endl; */
         }
     }
 }
@@ -19218,7 +16901,6 @@ void Reseau::serialize(Archive & ar, const unsigned int version)
         ar & BOOST_SERIALIZATION_NVP(m_LstMotifs);
 
         ar & BOOST_SERIALIZATION_NVP(m_bInitSimuTrafic);
-        ar & BOOST_SERIALIZATION_NVP(m_bInitSimuEmissions);
 
         ar & BOOST_SERIALIZATION_NVP(m_bDoVehicleListSensorExtraction);
 
@@ -19266,11 +16948,7 @@ void Reseau::serialize(Archive & ar, const unsigned int version)
         ar & BOOST_SERIALIZATION_NVP(m_sOutputDir);
 
         ar & BOOST_SERIALIZATION_NVP(m_bSimuTrafic);
-        ar & BOOST_SERIALIZATION_NVP(m_bSimuAcoustique);
-        ar & BOOST_SERIALIZATION_NVP(m_bSimuAir);
-        ar & BOOST_SERIALIZATION_NVP(m_bSimuSirane);
 
-        ar & BOOST_SERIALIZATION_NVP(Loi_emis);
         ar & BOOST_SERIALIZATION_NVP(m_bRelancerCalculRepartiteur);
         ar & BOOST_SERIALIZATION_NVP(m_nLastIdSegment);
         ar & BOOST_SERIALIZATION_NVP(m_pGestionsCapteur);
@@ -19292,8 +16970,6 @@ void Reseau::serialize(Archive & ar, const unsigned int version)
 
         ar & BOOST_SERIALIZATION_NVP(m_bProcDec);
         ar & BOOST_SERIALIZATION_NVP(m_dbDecTaux);
-
-        ar & BOOST_SERIALIZATION_NVP(m_cTypeSortieAcoustique);
 
         ar & BOOST_SERIALIZATION_NVP(m_bOffreCvgDeltaN);
 
@@ -19318,9 +16994,6 @@ void Reseau::serialize(Archive & ar, const unsigned int version)
         ar & BOOST_SERIALIZATION_NVP(m_bUseMapRouteFromNodes);
 
         ar & BOOST_SERIALIZATION_NVP(m_pParkingParameters);
-
-        ar & BOOST_SERIALIZATION_NVP(m_bAcousCell);
-        ar & BOOST_SERIALIZATION_NVP(m_bAcousSrcs); 
 
         ar & BOOST_SERIALIZATION_NVP(m_bDebug);
         ar & BOOST_SERIALIZATION_NVP(m_bDebugOD);
@@ -19351,12 +17024,6 @@ void Reseau::serialize(Archive & ar, const unsigned int version)
         ar & BOOST_SERIALIZATION_NVP(m_SimulationID);
         ar & BOOST_SERIALIZATION_NVP(m_TraficID);
         ar & BOOST_SERIALIZATION_NVP(m_ReseauID);
-
-        ar & BOOST_SERIALIZATION_NVP(m_nNbCellSirane);
-        ar & BOOST_SERIALIZATION_NVP(m_dbMinLongueurCellSirane);
-        ar & BOOST_SERIALIZATION_NVP(m_dbPeriodeAgregationSirane);
-        ar & BOOST_SERIALIZATION_NVP(m_dbDebutPeriodeSirane);
-        ar & BOOST_SERIALIZATION_NVP(m_bExtensionBarycentresSirane);
 
         ar & BOOST_SERIALIZATION_NVP(m_pRegulationModule);
 
@@ -19415,8 +17082,6 @@ void Reseau::serialize(Archive & ar, const unsigned int version)
         SerialiseDOMDocument<Archive>(ar, "m_XMLDocData", XS("ROOT_SYMUBRUIT"), m_XMLDocData, m_pXMLUtil);
 
         ar & BOOST_SERIALIZATION_NVP(m_xmlDocTrafics);
-        ar & BOOST_SERIALIZATION_NVP(m_XmlDocAcoustique);
-        ar & BOOST_SERIALIZATION_NVP(m_XmlDocSirane);
 
         ar & BOOST_SERIALIZATION_NVP(m_bFichierSAS);
 

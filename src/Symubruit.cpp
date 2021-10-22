@@ -6,13 +6,10 @@
 
 #include "TraceDocTrafic.h"
 #include "XMLDocTrafic.h"
-#include "TraceDocAcoustique.h"
 #include "regulation/PythonUtils.h"
 #include "Xerces/XMLUtil.h"
 #include "reseau.h"
 #include "SystemUtil.h"
-#include "EVEDocTrafic.h"
-#include "EVEDocAcoustique.h"
 #include "BriqueDeConnexion.h"
 #include "ConnectionPonctuel.h"
 #include "SerializeUtil.h"
@@ -156,20 +153,14 @@ bool _SymRunNextStep(int networkId, std::string &sXmlFluxInstant, bool bTrace, b
     }
 
     // Initialisation du type de simulation
-    //pReseau->SetIntegrationEve(false);   
 	pReseau->SetSymMode(Reseau::SYM_MODE_STEP_XML);
 
 	pReseau->SetXmlOutput(bTrace);	// Sortie dans fichier XML
 
-    if(!pReseau->IsInitSimuTrafic())
-        if(!pReseau->InitSimuTrafic())
-        {
-            return false;
-        }
-
-    if( pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-        if(!pReseau->IsInitSimuEmissions())
-            pReseau->InitSimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());
+    if(!pReseau->IsInitSimuTrafic() && !pReseau->InitSimuTrafic())
+    {
+        return false;
+    }
         
     bool bEndStep;
     do
@@ -189,159 +180,11 @@ bool _SymRunNextStep(int networkId, std::string &sXmlFluxInstant, bool bTrace, b
         return false;
     }
     XMLDocTrafic * XmlDocTrafic = pReseau->m_xmlDocTrafics.begin()->m_pData->GetXMLDocTrafic();
-	XMLDocAcoustique * XmlDocAcoustique = (XMLDocAcoustique*)pReseau->m_XmlDocAcoustique;
-    XMLDocEmissionsAtmo * XmlDocAtmo = (XMLDocEmissionsAtmo*)pReseau->m_XmlDocAtmo;
 
-    if( pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-    {       
-        // Simulation émissions
-        bool bSimuTrafic = pReseau->IsSimuTrafic();
-
-        bNEnd = pReseau->SimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());
-
-        pReseau->SetSimuTrafic(bSimuTrafic);
-
-        // Récupération des flux
-		sTrafficFlow = pReseau->GetXMLUtil()->getOuterXml(XmlDocTrafic->GetLastInstant(false, bTrace));
-
-        // Manipulation de chaîne pour reconstruire une chaîne XML bien formée
-        SystemUtil::trim(sTrafficFlow);
-		size_t nIT = sTrafficFlow.find_last_of('<');
-		sTrafficFlow = sTrafficFlow.substr(0, nIT);
-        sXmlFluxInstant = sTrafficFlow;
-
-        // idem que pour le flux trafic mais pour l'acoustique
-        if(pReseau->IsSimuAcoustique())
-        {
-            sAcoustiqueFlow = pReseau->GetXMLUtil()->getOuterXml(XmlDocAcoustique->GetLastInstant());
-            XmlDocAcoustique->ReleaseLastInstant();
-            SystemUtil::trim(sAcoustiqueFlow);
-            size_t nIA = sAcoustiqueFlow.find_first_of('>');
-            sAcoustiqueFlow = sAcoustiqueFlow.substr( nIA+1 );
-            sXmlFluxInstant += sAcoustiqueFlow;
-        }
-    }
-    else
-    {		
-        sXmlFluxInstant = pReseau->GetXMLUtil()->getOuterXml(XmlDocTrafic->GetLastInstant(false, bTrace));
-    }
+    sXmlFluxInstant = pReseau->GetXMLUtil()->getOuterXml(XmlDocTrafic->GetLastInstant(false, bTrace));
 
     pReseau->PostTimeStepSimulation();
 	
- /*  if(bNEnd == true)
-    {
-        pReseau->FinSimuTrafic();
-        if(pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-            pReseau->FinSimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());        
-
-        // Déchargement du réseau
-        delete theApp.m_pReseau;
-        theApp.m_pReseau = NULL;
-    }
-    */
-    return true;
-}
-
-bool _SymRunNextStep(eveShared::TrafficState * &pTrafficEVE, bool bTrace, bool &bNEnd)
-{
-    Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
-
-    bNEnd = true;       
-
-    if(!pReseau)  
-        return false;
-
-    // Interdiction des simulations uniquement acoustiques
-    if(!pReseau->IsSimuTrafic())
-    {        
-        return false;
-    }
-
-    // Initialisation du type de simulation
-	pReseau->SetSymMode(Reseau::SYM_MODE_STEP_EVE);
-
-	pReseau->SetXmlOutput(bTrace);	// Sortie dans fichier XML
-
-    if(!pReseau->IsInitSimuTrafic())
-        if(!pReseau->InitSimuTrafic())
-        {
-            return false;
-        }
-
-    if( pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-        if(!pReseau->IsInitSimuEmissions())
-            pReseau->InitSimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());
-      
-    bool bEndStep;
-    do
-    {
-        bNEnd = pReseau->SimuTrafic(bEndStep);    
-    }
-    while(bEndStep == false) ;
-    	
-    if( pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-    {       
-        // Simulation acoustique
-        bool bSimuTrafic = pReseau->IsSimuTrafic();
-
-        bNEnd = pReseau->SimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());
-
-        pReseau->SetSimuTrafic(bSimuTrafic);
-
-        // Récupération des flux
-		if (pTrafficEVE == NULL)
-		{
-			pTrafficEVE = new eveShared::TrafficState();
-		}
-		else
-		{
-			eveShared::TrafficState::Empty(pTrafficEVE);
-		}
-
-        eveShared::TrafficState * pTrafState1 = pReseau->m_xmlDocTrafics.front().m_pData->GetTrafficState();
-		eveShared::TrafficState * pTrafState2;
-        TraceDocAcoustique * tDocAcoustique = dynamic_cast<TraceDocAcoustique*>(pReseau->m_XmlDocAcoustique);
-        if (tDocAcoustique)
-		{
-			pTrafState2 = tDocAcoustique->GetTrafficState();
-		}
-		else
-		{
-			EVEDocAcoustique * EveDocAcoustique = (EVEDocAcoustique*)(pReseau->m_XmlDocAcoustique);
-			pTrafState2 = EveDocAcoustique->GetTrafficState();
-
-		}
-		eveShared::TrafficState::Copy(pTrafState1, pTrafficEVE);
-		eveShared::TrafficState::Copy(pTrafState2, pTrafficEVE);
-    }
-    else
-    {
-		if (pTrafficEVE == NULL)
-		{
-			pTrafficEVE = new eveShared::TrafficState();
-		}
-		else
-		{
-			eveShared::TrafficState::Empty(pTrafficEVE);
-		}
-
-        eveShared::TrafficState * pTrafState = pReseau->m_xmlDocTrafics.front().m_pData->GetTrafficState();
-		eveShared::TrafficState::Copy(pTrafState, pTrafficEVE);
-    }
-
-    pReseau->PostTimeStepSimulation();
-	
- /*   if(bNEnd == true)
-    {
-        pReseau->FinSimuTrafic();
-        if(pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-            pReseau->FinSimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());        
-
-        // Déchargement du réseau
-        delete theApp.m_pReseau;
-        theApp.m_pReseau = NULL;
-    }*/
-
     return true;
 }
 
@@ -389,149 +232,8 @@ bool _SymRunNextStepJSON(std::string &json, bool &bNEnd)
 
     pReseau->PostTimeStepSimulation();
 	
- /*   if(bNEnd == true)
-    {
-        pReseau->FinSimuTrafic();
-        if(pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-            pReseau->FinSimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());        
-
-        // Déchargement du réseau
-        delete theApp.m_pReseau;
-        theApp.m_pReseau = NULL;
-    }*/
-
     return true;
 }
-
-
-bool _SymRunToStep(int nStep, eveShared::TrafficState * &pTrafficEVE, bool bTrace, bool &bNEnd)
-{
-    Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
-
-    bNEnd = true;       
-
-    if(!pReseau)  
-        return false;
-
-    // Interdiction des simulations uniquement acoustiques
-    if(!pReseau->IsSimuTrafic())
-    {        
-        return false;
-    }
-
-    // Initialisation du type de simulation
-	pReseau->SetSymMode(Reseau::SYM_MODE_STEP_EVE);
-
-	pReseau->SetXmlOutput(bTrace);	// Sortie dans fichier XML
-
-    if(!pReseau->IsInitSimuTrafic())
-        if(!pReseau->InitSimuTrafic())
-        {
-            return false;
-        }
-
-    if( pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-        if(!pReseau->IsInitSimuEmissions())
-            pReseau->InitSimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());
-        
-	bNEnd = false;
-
-    bool bEndStep;
-	pReseau->SetSortieTraj(false);
-	while( nStep > 1 && !bNEnd )
-    {
-		bNEnd = pReseau->SimuTrafic(bEndStep); 
-        pReseau->PostTimeStepSimulation();
-        if(bEndStep)
-        {   
-            nStep--;
-        }
-    }
-
-	pReseau->SetSortieTraj(true);
-    bool bReleaseNeaded = false;
-	if( !bNEnd )
-    {
-        bEndStep = false;
-        while(bEndStep == false && !bNEnd)
-        {
-		    bNEnd = pReseau->SimuTrafic(bEndStep); 
-        }
-        bReleaseNeaded = true;
-    }
-    	
-    if( pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-    {       
-        // Simulation acoustique
-        bool bSimuTrafic = pReseau->IsSimuTrafic();
-
-        bNEnd = pReseau->SimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());
-
-        pReseau->SetSimuTrafic(bSimuTrafic);
-
-        // Récupération des flux
-		if (pTrafficEVE == NULL)
-		{
-			pTrafficEVE = new eveShared::TrafficState();
-		}
-		else
-		{
-			eveShared::TrafficState::Empty(pTrafficEVE);
-		}
-
-        eveShared::TrafficState * pTrafState1 = pReseau->m_xmlDocTrafics.front().m_pData->GetTrafficState();
-        eveShared::TrafficState::Copy(pTrafState1, pTrafficEVE);
-
-        if(pReseau->IsSimuAcoustique())
-        {
-	    	eveShared::TrafficState * pTrafState2;
-            TraceDocAcoustique * tDocAcoustique = dynamic_cast<TraceDocAcoustique*>(pReseau->m_XmlDocAcoustique);
-            if(tDocAcoustique)
-            {
-                pTrafState2 = tDocAcoustique->GetTrafficState();
-            }
-            else
-            {
-                EVEDocAcoustique * EveDocAcoustique = (EVEDocAcoustique*)(pReseau->m_XmlDocAcoustique);
-			    pTrafState2 = EveDocAcoustique->GetTrafficState();
-            }
-            eveShared::TrafficState::Copy(pTrafState2, pTrafficEVE);
-        }
-    }
-    else
-    {
-		if (pTrafficEVE == NULL)
-		{
-			pTrafficEVE = new eveShared::TrafficState();
-		}
-		else
-		{
-			eveShared::TrafficState::Empty(pTrafficEVE);
-		}
-
-        eveShared::TrafficState * pTrafState = pReseau->m_xmlDocTrafics.front().m_pData->GetTrafficState();
-		eveShared::TrafficState::Copy(pTrafState, pTrafficEVE);
-    }
-
-    if(bReleaseNeaded)
-    {
-        pReseau->PostTimeStepSimulation();
-    }
-	
-    /*if(bNEnd == true)
-    {
-        pReseau->FinSimuTrafic();
-        if(pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-            pReseau->FinSimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());        
-
-        // Déchargement du réseau
-        delete theApp.m_pReseau;
-        theApp.m_pReseau = NULL;
-    }*/
-
-    return true;
-}
-
 
 bool _SymRunToStep(int nStep, std::string &sXmlFluxInstant, bool bTrace, bool &bNEnd)
 {
@@ -553,15 +255,10 @@ bool _SymRunToStep(int nStep, std::string &sXmlFluxInstant, bool bTrace, bool &b
 
 	pReseau->SetXmlOutput(bTrace);	// Sortie dans fichier XML
 
-    if(!pReseau->IsInitSimuTrafic())
-        if(!pReseau->InitSimuTrafic())
-        {
-            return false;
-        }
-
-    if( pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-        if(!pReseau->IsInitSimuEmissions())
-            pReseau->InitSimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());
+    if(!pReseau->IsInitSimuTrafic() && !pReseau->InitSimuTrafic())
+    {
+        return false;
+    }
         
 	bNEnd = false;
 
@@ -593,59 +290,13 @@ bool _SymRunToStep(int nStep, std::string &sXmlFluxInstant, bool bTrace, bool &b
 	std::string sAcoustiqueFlow;
     std::string sAtmoFlow;
 	XMLDocTrafic * XmlDocTrafic = pReseau->m_xmlDocTrafics.front().m_pData->GetXMLDocTrafic();
-	XMLDocAcoustique * XmlDocAcoustique = (XMLDocAcoustique*)pReseau->m_XmlDocAcoustique;
-    XMLDocEmissionsAtmo * XmlDocAtmo = (XMLDocEmissionsAtmo*)pReseau->m_XmlDocAtmo;
     	
-
-    if( pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-    {       
-        // Simulation émissions
-        bool bSimuTrafic = pReseau->IsSimuTrafic();
-
-        bNEnd = pReseau->SimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());
-
-        pReseau->SetSimuTrafic(bSimuTrafic);
-
-        // Récupération des flux
-        sTrafficFlow = pReseau->GetXMLUtil()->getOuterXml(XmlDocTrafic->GetLastInstant(false, bTrace));
-
-        // Manipulation de chaîne pour reconstruire une chaîne XML bien formée
-        SystemUtil::trim(sTrafficFlow);
-		size_t nIT = sTrafficFlow.find_last_of('<');
-		sTrafficFlow = sTrafficFlow.substr(0, nIT);
-        sXmlFluxInstant = sTrafficFlow;
-
-        // idem que pour le flux trafic mais pour l'acoustique
-        if(pReseau->IsSimuAcoustique())
-        {
-            sAcoustiqueFlow = pReseau->GetXMLUtil()->getOuterXml(XmlDocAcoustique->GetLastInstant());
-            XmlDocAcoustique->ReleaseLastInstant();
-            SystemUtil::trim(sAcoustiqueFlow);
-            size_t nIA = sAcoustiqueFlow.find_first_of('>');
-            sAcoustiqueFlow = sAcoustiqueFlow.substr( nIA+1 );
-            sXmlFluxInstant += sAcoustiqueFlow;
-        }
-    }
-    else
-    {		
-        sXmlFluxInstant = pReseau->GetXMLUtil()->getOuterXml(XmlDocTrafic->GetLastInstant(false, bTrace));
-    }
+    sXmlFluxInstant = pReseau->GetXMLUtil()->getOuterXml(XmlDocTrafic->GetLastInstant(false, bTrace));
 
     if(bReleaseNeaded)
     {
         pReseau->PostTimeStepSimulation();
     }
-    /*
-    if(bNEnd == true)
-    {
-        pReseau->FinSimuTrafic();
-        if(pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-            pReseau->FinSimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());        
-
-        // Déchargement du réseau
-        delete theApp.m_pReseau;
-        theApp.m_pReseau = NULL;
-    }*/
 
     return true;
 }
@@ -732,134 +383,6 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymLoadNetwork(const char* sTmpXmlDataFile
     return SymLoadNetwork(std::string(sTmpXmlDataFile), std::string(sScenarioID), std::string(sOutDir));
 }
 
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymLoadNetwork(std::string sTmpXmlDataFile, eveShared::SimulationInfo * &pSInfo, eveShared::SymuviaNetwork * &pSNetwork, std::string sScenarioID = "", std::string sOutDir = "")
-{
-	bool bOk;
-
-	bOk = SymLoadNetwork(sTmpXmlDataFile, sScenarioID, sOutDir);
-
-	if (bOk)
-	{
-        Reseau * pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
-
-		if (pSInfo == NULL)
-		{
-			pSInfo = new eveShared::SimulationInfo();
-		}
-
-		// Classe SimulationInfo
-		pSInfo->begin = pReseau->GetSimuStartTime();
-		pSInfo->changeLane = pReseau->IsChgtVoie();
-		pSInfo->date = pReseau->GetDateSimulation().ToDate();
-		pSInfo->duration = (int)pReseau->GetDureeSimu();
-		pSInfo->end = pReseau->GetSimuEndTime();
-		pSInfo->loipoursuite = pReseau->GetLoipoursuite();
-		pSInfo->step = pReseau->GetTimeStep();
-		pSInfo->title = pReseau->GetTitre();
-        if(pReseau->IsSimuAcoustique() && pReseau->IsSimuTrafic()) {
-		    pSInfo->typesimulation = "all";
-        } else if(!pReseau->IsSimuAcoustique() && pReseau->IsSimuTrafic()) {
-            pSInfo->typesimulation = "trafic";
-        } else if(pReseau->IsSimuAcoustique() && !pReseau->IsSimuTrafic()) {
-            pSInfo->typesimulation = "acoustique";
-        }
-		extern const char* VERSION_FICHIER;
-		pSInfo->version = atof(VERSION_FICHIER);
-        for(size_t iTimespan = 0; iTimespan < pReseau->m_LstPlagesTemporelles.size(); iTimespan++)
-        {
-            PlageTemporelle * pPT = pReseau->m_LstPlagesTemporelles[iTimespan];
-            eveShared::Timespan ts;
-            ts.begin = pSInfo->begin + STimeSpan(0, 0, 0, (int)pPT->m_Debut);
-            ts.end = pSInfo->begin + STimeSpan(0, 0, 0, (int)pPT->m_Fin);
-            ts.id = pPT->m_ID;
-            pSInfo->timespans.push_back(ts);
-        }
-
-		// Classe SymuviaNetwork
-		if (pSNetwork == NULL)
-		{
-			pSNetwork = new eveShared::SymuviaNetwork();
-		}
-        else
-        {
-            eveShared::SymuviaNetwork::Empty(pSNetwork);
-        }
-		std::deque<Tuyau*>::iterator itBeg, itEnd, itTuyau;
-		itBeg = pReseau->m_LstTuyaux.begin();
-		itEnd = pReseau->m_LstTuyaux.end();
-		for (itTuyau = itBeg; itTuyau != itEnd; itTuyau++)
-		{
-			if( !(*itTuyau)->GetBriqueParente() )	// Exclusion des tronçons construits par SymuVia
-			{
-				std::string sID;
-				Point * pPt;
-				eveShared::Troncon * pTroncon = new eveShared::Troncon();
-				pPt = (*itTuyau)->GetExtAmont();
-				pTroncon->extremite_amont[0] = pPt->dbX;
-				pTroncon->extremite_amont[1] = pPt->dbY;
-				pTroncon->extremite_amont[2] = pPt->dbZ;
-				pPt = (*itTuyau)->GetExtAval();
-				pTroncon->extremite_aval[0] = pPt->dbX;
-				pTroncon->extremite_aval[1] = pPt->dbY;
-				pTroncon->extremite_aval[2] = pPt->dbZ;
-				pTroncon->id = (*itTuyau)->GetLabel();
-				sID = pTroncon->id;
-				if ((*itTuyau)->GetBriqueAmont() != NULL)
-				{
-					pTroncon->id_eltamont = (*itTuyau)->GetBriqueAmont()->GetID();
-				}
-				else
-					if ((*itTuyau)->getConnectionAmont() != NULL)
-					{
-						pTroncon->id_eltamont = (*itTuyau)->getConnectionAmont()->GetID();
-					}
-				if ((*itTuyau)->GetBriqueAval() != NULL)
-				{
-					pTroncon->id_eltaval = (*itTuyau)->GetBriqueAval()->GetID();
-				}
-				else
-					if ((*itTuyau)->getConnectionAval() != NULL)
-					{
-						pTroncon->id_eltaval = (*itTuyau)->getConnectionAval()->GetID();
-					}
-                pTroncon->largeurs_voies = (*itTuyau)->getLargeursVoies();
-				pTroncon->nb_cell_acoustique = (*itTuyau)->GetNbCell(); 
-				pTroncon->nb_voie = (*itTuyau)->getNb_voies(); 
-
-                for(size_t i = 0; i < (*itTuyau)->GetZLevelCrossings().size(); i++)
-                {
-                    eveShared::LevelCrossing * pLvlCrossing = new eveShared::LevelCrossing;
-                    pLvlCrossing->start = (*itTuyau)->GetZLevelCrossings()[i].dbPosDebut;
-                    pLvlCrossing->end = (*itTuyau)->GetZLevelCrossings()[i].dbPosFin;
-                    pLvlCrossing->zlevel = (*itTuyau)->GetZLevelCrossings()[i].nZLevel;
-                    pTroncon->LevelCrossings.push_back(pLvlCrossing);
-                }
-
-				if( (*itTuyau)->GetResolution() == 1)
-					pTroncon->resolution = "M";
-				else
-					pTroncon->resolution = "H";
-
-				pTroncon->revetement = (*itTuyau)->GetRevetement();
-				pTroncon->vit_reg = (*itTuyau)->GetVitReg();				
-				std::deque<Point*>::iterator itBeg, itEnd, itPt;
-				itBeg = (*itTuyau)->GetLstPtsInternes().begin();
-				itEnd = (*itTuyau)->GetLstPtsInternes().end();
-				for (itPt = itBeg; itPt!=itEnd; itPt++)
-				{
-					double * pCoord = new double[3];
-					pCoord[0] = (*itPt)->dbX;
-					pCoord[1] = (*itPt)->dbY;
-					pCoord[2] = (*itPt)->dbZ;
-					pTroncon->point_internes.push_back(pCoord);
-				}
-				pSNetwork->troncons[sID]=pTroncon;
-			}
-		}
-	}
-	return bOk;
-}
-
 /// <summary>
 /// Wrapper method to unload the current scenario
 /// </summary>
@@ -870,10 +393,7 @@ SYMUBRUIT_EXPORT void SymUnloadCurrentNetwork()
 
     if(pNetwork)
     {
-        pNetwork->FinSimuTrafic();
-
-        if(pNetwork->IsSimuAcoustique() || pNetwork->IsSimuAir() || pNetwork->IsSimuSirane())
-            pNetwork->FinSimuEmissions(pNetwork->IsSimuAcoustique(), pNetwork->IsSimuAir(), pNetwork->IsSimuSirane());        
+        pNetwork->FinSimuTrafic();    
     }
 }
 
@@ -900,25 +420,8 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunTraffic()
         return false;
 
     pReseau->SetSimuTrafic(true);
-    pReseau->SetSimuAcoustique(false);
 
     return pReseau->Execution();
-}
-
-
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymGenAcousticCells()
-{
-    Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
-
-    if(!pReseau)
-    {        
-        return false;
-    }    
-
-    pReseau->InitSimuEmissions(true, false, false, true);
-    pReseau->FinSimuEmissions(true, false, false);     
-
-    return true;
 }
 
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunAcousticEmissions()
@@ -931,64 +434,12 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunAcousticEmissions()
     }    
 
     pReseau->SetSimuTrafic(false);
-    pReseau->SetSimuAcoustique(true);
 
     if(!pReseau->Execution())
         return false;
 
     return true;
 }
-/*
-SYMUBRUIT_EXPORT char* SYMUBRUIT_CDECL SymRunNextStepNode(bool bTrace, bool &bNEnd){
-	if(bNEnd)
-		return NULL;
-
-	std:string sXmlFluxInstant;
-	std::string sFlow;
-
-	if( !_SymRunNextStep(sFlow, bTrace, bNEnd) )
-		return NULL;
-
-	SystemUtil::wstring2string(sFlow, sXmlFluxInstant);
-	char* retValue = new char[sXmlFluxInstant.length()+1];
-	for(int i=0; i < sXmlFluxInstant.length(); i++){
-		retValue[i] = sXmlFluxInstant[i];
-	}
-	retValue[sXmlFluxInstant.length()] = '\0';
-	return retValue;
-}*/
-/*
-SYMUBRUIT_EXPORT char* SYMUBRUIT_CDECL SymGetNetworkNode(){
-	std:string sXmlFlowNetwork;
-	Reseau* pReseau = theApp.m_pReseau;    
-
-    // Pas de réseau chargé, sortie sur erreur
-    if(!pReseau)
-    {                
-        return NULL;
-    }
-	
-	std::string sXml = pReseau->GetNetwork();   
-	std::string sXmlStr;
-	
-	SystemUtil::wstring2string(sXml, sXmlFlowNetwork);
-
-	char* retValue = new char[sXmlFlowNetwork.length()+1];
-	for(int i=0; i < sXmlFlowNetwork.length(); i++){
-		retValue[i] = sXmlFlowNetwork[i];
-	}
-	retValue[sXmlFlowNetwork.length()] = '\0';
-	return retValue;
-}
-*/
-/*
-SYMUBRUIT_EXPORT void SYMUBRUIT_CDECL SymRunDeleteStr(char* str){
-	if(str != NULL){
-		delete(str);
-	}
-}
-
-*/
 
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStep(LPSTR lpszXmlFluxInstant, bool bTrace, bool &bNEnd)
 {
@@ -997,29 +448,10 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStep(LPSTR lpszXmlFluxInstant, b
 	if( !_SymRunNextStep(DEFAULT_NETWORK_ID, sFlow, bTrace, bNEnd) )
 		return false;
 
-    /*if( bNEnd )
-    {
-        theApp.m_pReseau->FinSimuTrafic();
-        if(theApp.m_pReseau->IsSimuAcoustique() || theApp.m_pReseau->IsSimuAir() || theApp.m_pReseau->IsSimuSirane())
-            theApp.m_pReseau->FinSimuEmissions(theApp.m_pReseau->IsSimuAcoustique(), theApp.m_pReseau->IsSimuAir(), theApp.m_pReseau->IsSimuSirane());        
-
-        // Déchargement du réseau
-        delete theApp.m_pReseau;
-        theApp.m_pReseau = NULL;
-    
-    }*/
 	if(bNEnd)
 		theApp.DeleteAllNetworks();
 
 	strcpy(lpszXmlFluxInstant, sFlow.c_str());
-		             		
-    return true;
-}
-
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStep(eveShared::TrafficState * &pTrafficEVE, bool bTrace, bool &bNEnd)
-{
-	if( !_SymRunNextStep(pTrafficEVE, bTrace, bNEnd) )
-		return false;
 		             		
     return true;
 }
@@ -1030,19 +462,6 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStep(string &sXmlFluxInstant, bo
 
     if (!_SymRunNextStep(DEFAULT_NETWORK_ID, sFlow, bTrace, bNEnd))
 		return false;
-
-    // Commenté car rend l'utilisation avec SymuMaster impossible (ou en tout cas ca empêche de faire des boucles sur la dernière période d'affectation)
-    /*if( bNEnd )
-    {
-        theApp.m_pReseau->FinSimuTrafic();
-        if(theApp.m_pReseau->IsSimuAcoustique() || theApp.m_pReseau->IsSimuAir() || theApp.m_pReseau->IsSimuSirane())
-            theApp.m_pReseau->FinSimuEmissions(theApp.m_pReseau->IsSimuAcoustique(), theApp.m_pReseau->IsSimuAir(), theApp.m_pReseau->IsSimuSirane());        
-
-        // Déchargement du réseau
-        delete theApp.m_pReseau;
-        theApp.m_pReseau = NULL;
-    
-    }*/
 
 	sXmlFluxInstant = sFlow;
 		             		
@@ -1083,11 +502,6 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunToStep(int nInstant, string &sXmlFlu
     return true;
 }
 
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunToStep(int nStep, eveShared::TrafficState * &pTrafficEVE, bool bTrace, bool &bNEnd)
-{ 
-	return _SymRunToStep(nStep, pTrafficEVE, bTrace, bNEnd);
-}
-
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTraffic(LPSTR lpszXmlFluxInstant, bool bTrace, bool &bNEnd)
 {
     Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
@@ -1098,26 +512,8 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTraffic(LPSTR lpszXmlFluxIns
         return false;
 
     pReseau->SetSimuTrafic(true);
-    pReseau->SetSimuAcoustique(false);
-    pReseau->SetSimuAir(false);
 
     return SymRunNextStep(lpszXmlFluxInstant, bTrace, bNEnd);    
-}
-
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTraffic(eveShared::TrafficState * &pTrafficEVE, bool bTrace, bool &bNEnd)
-{
-    Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
-
-    bNEnd = true;    
-
-    if(!pReseau)
-        return false;
-
-    pReseau->SetSimuTrafic(true);
-    pReseau->SetSimuAcoustique(false);
-    pReseau->SetSimuAir(false);
-
-    return SymRunNextStep(pTrafficEVE, bTrace, bNEnd);    
 }
 
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTraffic(string& sXmlFluxInstant, bool bTrace, bool &bNEnd)
@@ -1130,67 +526,8 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTraffic(string& sXmlFluxInst
         return false;
 
     pReseau->SetSimuTrafic(true);
-    pReseau->SetSimuAcoustique(false);
-    pReseau->SetSimuAir(false);
 
     return SymRunNextStep(sXmlFluxInstant, bTrace, bNEnd);    
-}
-
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTrafficAcoustic(string& sXmlFluxInstant, bool bCel, bool bSrc, bool bTrace, bool &bNEnd)
-{
-    Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
-
-    bNEnd = true;    
-
-    if(!pReseau)
-        return false;
-
-    pReseau->SetSimuTrafic(true);
-    pReseau->SetSimuAcoustique(true);
-    pReseau->SetSimuAir(false);
-
-	pReseau->m_bAcousCell = bCel;
-	pReseau->m_bAcousSrcs = bSrc;
-
-    return SymRunNextStep(sXmlFluxInstant, bTrace, bNEnd);    
-}
-
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTrafficAcoustic(eveShared::TrafficState * &pTrafficEVE, bool bCel, bool bSrc, bool bTrace, bool &bNEnd)
-{
-    Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
-
-    bNEnd = true;    
-
-    if(!pReseau)
-        return false;
-
-    pReseau->SetSimuTrafic(true);
-    pReseau->SetSimuAcoustique(true);
-    pReseau->SetSimuAir(false);
-
-	pReseau->m_bAcousCell = bCel;
-	pReseau->m_bAcousSrcs = bSrc;
-
-    return SymRunNextStep(pTrafficEVE, bTrace, bNEnd);    
-}
-
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTrafficAcoustic(LPSTR lpszXmlFluxInstant, bool bCel, bool bSrc, bool bTrace, bool &bNEnd)
-{
-    Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
-
-    bNEnd = true;    
-
-    if(!pReseau)
-        return false;
-
-    pReseau->SetSimuTrafic(true);
-    pReseau->SetSimuAcoustique(true);
-    pReseau->SetSimuAir(false);
-
-	pReseau->m_bAcousCell = bCel;
-	pReseau->m_bAcousSrcs = bSrc;
-
-    return SymRunNextStep(lpszXmlFluxInstant, bTrace, bNEnd);    
 }
 
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTrafficAtmospheric(string& sXmlFluxInstant, bool bTrace, bool &bNEnd)
@@ -1203,26 +540,8 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTrafficAtmospheric(string& s
         return false;
 
     pReseau->SetSimuTrafic(true);
-    pReseau->SetSimuAcoustique(false);
-    pReseau->SetSimuAir(true);
 
     return SymRunNextStep(sXmlFluxInstant, bTrace, bNEnd);    
-}
-
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTrafficAtmospheric(eveShared::TrafficState * &pTrafficEVE, bool bTrace, bool &bNEnd)
-{
-    Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
-
-    bNEnd = true;    
-
-    if(!pReseau)
-        return false;
-
-    pReseau->SetSimuTrafic(true);
-    pReseau->SetSimuAcoustique(false);
-    pReseau->SetSimuAir(true);
-
-    return SymRunNextStep(pTrafficEVE, bTrace, bNEnd);    
 }
 
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTrafficAtmospheric(LPSTR lpszXmlFluxInstant, bool bTrace, bool &bNEnd)
@@ -1235,47 +554,9 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTrafficAtmospheric(LPSTR lps
         return false;
 
     pReseau->SetSimuTrafic(true);
-    pReseau->SetSimuAcoustique(false);
-    pReseau->SetSimuAir(true);
 
     return SymRunNextStep(lpszXmlFluxInstant, bTrace, bNEnd);    
 }
-
-
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymUpdateNetwork(std::string sXmlDataFile)
-{
-    Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
-
-    // Pas de réseau chargé, sortie sur erreur
-    if(!pReseau)
-    {                
-        return false;
-    }
-
-    // Traitement du nom du fichier de modification       	
-	bool bResult = pReseau->UpdateReseau(sXmlDataFile);
-
-	return bResult;    
-}
-
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymGenEveNetwork(eveShared::EveNetwork * &pNetwork)
-{    
-    // Traitement du nom du fichier d'entrée   
-    Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
-
-    // Pas de réseau chargé, sortie sur erreur
-    if(!pReseau)
-    {                
-        return false;
-    }
-	
-    pReseau->GenReseauCirculationFile(pNetwork);   
-	if (pNetwork == NULL)
-		return false;
-
-    return true;
-}
-
 
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymGetNetwork(std::string &sXmlFlowNetwork)
 {    
@@ -1326,8 +607,6 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunAirEmissions()
     }    
 
     pReseau->SetSimuTrafic(false);
-    pReseau->SetSimuAcoustique(false);
-    pReseau->SetSimuAir(true);
 
     if(!pReseau->Execution())
         return false;
@@ -1437,39 +716,8 @@ SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymReset()
     }
 	
 	pReseau->m_bInitSimuTrafic = false;
-	pReseau->m_bInitSimuEmissions = false;	
 
 	return 0;
-}
-
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunDeleteTraffic(eveShared::TrafficState * &pTrafficEVE)
-{
-	if( pTrafficEVE )
-		delete(pTrafficEVE);
-
-	pTrafficEVE = nullptr;
-
-	return true;
-}
-
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunDeleteInfo(eveShared::SimulationInfo * &pSimulationInfoEVE)
-{
-	if( pSimulationInfoEVE )
-		delete(pSimulationInfoEVE);
-
-	pSimulationInfoEVE = nullptr;
-
-	return true;
-}
-
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunDeleteNetwork(eveShared::SymuviaNetwork * &pNetworkEVE)
-{
-	if( pNetworkEVE )
-		delete(pNetworkEVE);
-
-	pNetworkEVE = nullptr;
-
-	return true;
 }
 
 CSymubruitApp::CSymubruitNetworkInstance::CSymubruitNetworkInstance(Reseau * pNetwork) :
@@ -2151,18 +1399,6 @@ SYMUBRUIT_EXPORT char* SYMUBRUIT_CDECL SymRunNextStepNode(bool bTrace, bool &bNE
     if(bNEnd)
 		return NULL;
 
-     /*   if( bNEnd )
-    {
-        theApp.m_pReseau->FinSimuTrafic();
-        if(theApp.m_pReseau->IsSimuAcoustique() || theApp.m_pReseau->IsSimuAir() || theApp.m_pReseau->IsSimuSirane())
-            theApp.m_pReseau->FinSimuEmissions(theApp.m_pReseau->IsSimuAcoustique(), theApp.m_pReseau->IsSimuAir(), theApp.m_pReseau->IsSimuSirane());        
-
-        // Déchargement du réseau
-        delete theApp.m_pReseau;
-        theApp.m_pReseau = NULL;
-        return NULL;
-    }*/
-
     bNEnd = false;
 
 	std::string sXmlFluxInstant;
@@ -2290,8 +1526,6 @@ SYMUBRUIT_EXPORT char* SYMUBRUIT_CDECL SymGetVehiclesNodeAndFinish(){
     // finish simulation
     {
         pReseau->FinSimuTrafic();
-        if (pReseau->IsSimuAcoustique() || pReseau->IsSimuAir() || pReseau->IsSimuSirane())
-            pReseau->FinSimuEmissions(pReseau->IsSimuAcoustique(), pReseau->IsSimuAir(), pReseau->IsSimuSirane());
 
         // Déchargement du réseau
         theApp.DeleteNetwork(DEFAULT_NETWORK_ID);       

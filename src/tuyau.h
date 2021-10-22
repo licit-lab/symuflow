@@ -33,7 +33,6 @@ namespace SymuCore {
 class Arret;
 class Voie;
 class ConnectionPonctuel;
-class Loi_emission;
 class BriqueDeConnexion;
 class Connexion;
 class CDiagrammeFondamental;
@@ -207,7 +206,7 @@ public:
 
 	Tuyau(      Reseau* pReseau, std::string _Nom,char _Type_amont ,char _Type_aval,ConnectionPonctuel *_p_aval,ConnectionPonctuel *_p_amont,
                  char typevoie, std::string nom_rev, std::vector<double> larg_voie, double _Abscisse_amont,double _Ordonnee_amont,
-                 double _Abscisse_aval,double _Ordonnee_aval, double _Hauteur_amont,double _Hauteur_aval, int _Nb_cel, int _Nb_voies,
+                 double _Abscisse_aval,double _Ordonnee_aval, double _Hauteur_amont,double _Hauteur_aval, int _Nb_voies,
                  double pastemps, double dbVitReg, double dbVitCat, const std::string & strRoadLabel);
 
                 // Constructeur complet
@@ -239,9 +238,6 @@ public:
         virtual void    ComputeOffer();                                  // Calcul de l'offre en entrée du tronçon
 
         virtual void    TrafficOutput()                                  = 0;
-        virtual void    EmissionOutput()            = 0;
-
-        virtual void    ComputeNoise         (Loi_emission* Loi)                               = 0;  
 
         virtual void    CalculDebitEntree(double h);
         virtual void    CalculDebitSortie(double dbInstant);
@@ -288,7 +284,6 @@ public:
         int     GetNbPasTempsHist(){return m_nNbPasTempsHist;};
 
 virtual        char    GetLanesManagement() = 0;
-virtual void    InitAcousticVariables(){};
 
         // Fonctions utilitaires      
 
@@ -404,7 +399,7 @@ public :
     TuyauMacro();
 	TuyauMacro(     Reseau* pReseau, std::string _Nom,char _Type_amont ,char _Type_aval,ConnectionPonctuel *_p_aval,ConnectionPonctuel *_p_amont,
                     char typevoie, char nom_rev[256], std::vector<double> larg_voie, double _Abscisse_amont,double _Ordonnee_amont,
-                    double _Abscisse_aval,double _Ordonnee_aval, double _Hauteur_amont, double _Hauteur_aval, int _Nb_cel, int _Nb_voies,
+                    double _Abscisse_aval,double _Ordonnee_aval, double _Hauteur_amont, double _Hauteur_aval, int _Nb_voies,
                     double pastemps, double dbVitReg, double dbVitCat, const std::string & strRoadLabel);
 
     virtual ~TuyauMacro();    
@@ -414,11 +409,7 @@ public :
     virtual void    InitVarSimu();
     virtual bool    Segmentation();    
 
-    virtual void    TrafficOutput();    
-
-    virtual void    ComputeNoise         (Loi_emission* Loi);
-
-    virtual void    EmissionOutput(){};     
+    virtual void    TrafficOutput();  
 
 	virtual        void            DeleteLanes();
 
@@ -439,8 +430,6 @@ public :
 
     virtual void    ComputeTraffic(double dbInstant);
     virtual void    ComputeTrafficEx(double dbInstant);
-
-	virtual bool    InitSimulation(bool bAcou, bool bSirane, std::string strName);
 
     virtual char    GetLanesManagement(){return 'G';};
 
@@ -504,9 +493,7 @@ private:
 
 class SYMUBRUIT_EXPORT TuyauMicro : public Tuyau
 {
-private:    
-    int             m_nNbCellAcoustique;            // Nombre de cellule acoustique
-	double			m_dbAcousticCellLength;			// Acoustic cell length
+private:
 
 	bool			m_bAgressif;					// Indique si les véhicules du tronçon peuvent être agressifs
 
@@ -515,9 +502,6 @@ private:
     std::deque<Traversee*>   m_LstTraversee;        // Liste des traversées prioritaires à traiter
 
 	bool			m_bChtVoieVersDroiteAutorise;	// Indique si le chnagment de voie vers la voie la plus à droite est autorisé
-
-   // Pour gestion des cellules d'agregation des sorties pour Sirane
-   std::vector<Segment*> m_LstCellSirane;
 
 public:
 	std::map<TypeVehicule*, double>		m_mapTempsParcours;							// Map de stockage des temps de parcours par type de véhicule utilisé pour l'affectation
@@ -555,8 +539,7 @@ public:
 	TuyauMicro(     Reseau* pReseau, std::string _Nom,char _Type_amont ,char _Type_aval,ConnectionPonctuel *_p_aval,ConnectionPonctuel *_p_amont,
                     char typevoie, std::string nom_rev, std::vector<double> larg_voie, double _Abscisse_amont,double _Ordonnee_amont,
                     double _Abscisse_aval,double _Ordonnee_aval, double _Hauteur_amont, double _Hauteur_aval, int _Nb_voies,
-                    double pastemps,
-                    int nNbCellAcoustique, double dbVitReg, double dbVitCat, double dbCellAcousLength, const std::string & strRoadLabel);
+                    double pastemps, double dbVitReg, double dbVitCat, const std::string & strRoadLabel);
 
     virtual ~TuyauMicro();    
 
@@ -564,29 +547,17 @@ public:
     // Méthodes virtuelles pures de Tuyau    
     virtual bool    Segmentation();
     virtual void    InitVarSimu(){};
-	virtual bool    InitSimulation(bool bCalculAcoustique, bool bSirane, std::string sLabel);                         // Initialisation de la simulation
     virtual void    ComputeTraffic(double dbInstant);
     virtual void    TrafficOutput();
-    virtual void    ComputeNoise         (Loi_emission* Loi)                               {};
-    virtual void    EmissionOutput();
     virtual char    GetLanesManagement(){return 'D';};
-    virtual void    InitAcousticVariables();
 
     virtual        void            DeleteLanes();
 
     void            EndComputeTraffic(double dbInstant);
 
-    int             GetNbCellAcoustique(){return m_nNbCellAcoustique;};
-	double          GetAcousticCellLength(){return m_dbAcousticCellLength;};
-
     virtual	double  ComputeCost(double dbInst, TypeVehicule    *pTypeVeh, bool bUsePenalisation);    
     double          GetCoutAVide(double dbInst, TypeVehicule    *pTypeVeh, bool bIgnoreVitCat, bool bIncludeDownstreamPenalty = false);
     virtual double  GetTempsParcourRealise(TypeVehicule * pTypeVehicule) const;
-
-
-
-    void            SetNbCellAcoustique(int nNb){m_nNbCellAcoustique = nNb;};
-	void			SetAcousticCellLength(double dbAcousticCellLength){ m_dbAcousticCellLength = dbAcousticCellLength;};
 
     Traversee*      AddTraversee(Tuyau *pT, double dbPosNonPrioritaire, double dbPosPrioritaire, int nVoieTraversant = 0);        
 
@@ -612,12 +583,7 @@ public:
 	bool			IsChtVoieVersDroiteAutorise(){return m_bChtVoieVersDroiteAutorise;};
 	void			SetChtVoieVersDroiteAutorise(bool b){m_bChtVoieVersDroiteAutorise = b;};
 
-    const std::vector<Segment*> & GetSiraneCells() {return m_LstCellSirane;};
-
-    virtual void    DiscretisationSirane();
-
 protected:
-    virtual void    SupprimeCellSirane();
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Sérialisation

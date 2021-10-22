@@ -4,7 +4,6 @@
 #include "ControleurDeFeux.h"
 #include "MergingObject.h"
 #include "Affectation.h"
-#include "DocAcoustique.h"
 #include "CarrefourAFeuxEx.h"
 #include "RandManager.h"
 #include "Parking.h"
@@ -15,7 +14,6 @@
 #include "TuyauMeso.h"
 #include "convergent.h"
 #include "arret.h"
-#include "loi_emission.h"
 #include "SystemUtil.h"
 #include "reseau.h"
 #include "Logger.h"
@@ -176,27 +174,6 @@ double TypeVehicule::GetAccMax
 }
 
 //================================================================
-void TypeVehicule::AddSrcAcoustiques
-//----------------------------------------------------------------
-// Fonction  : Ajoute une source acoustique à la liste
-// Version du: 06/10/2008
-// Historique: 06/10/2008 (C.Bécarie - Tinea)
-//             Création
-//================================================================
-(
-    double dbPos, 
-    char *strIDDB
-)
-{
-    SrcAcoustique srcAcous;
-
-    srcAcous.dbPosition = dbPos;
-    srcAcous.strIDDataBase = strIDDB;
-
-    m_LstSrcAcoustiques.push_back(srcAcous);
-}
-
-//================================================================
 Vehicule::Vehicule
 //----------------------------------------------------------------
 // Fonction  : Constructeur par défaut
@@ -222,8 +199,6 @@ Vehicule::Vehicule
     m_pTuyau = NULL;
     m_pVit  = NULL;
     m_pAcc  = NULL;
-
-    m_pWEmission = NULL;
 
     m_pDF = new CDiagrammeFondamental();
 
@@ -335,7 +310,6 @@ Vehicule::Vehicule
     m_bArretAuFeu = other.m_bArretAuFeu;
     m_bChgtVoie = other.m_bChgtVoie;
     m_bVoiesOK = other.m_bVoiesOK;
-    m_pWEmission = other.m_pWEmission;
     m_dbHeureEntree = other.m_dbHeureEntree;
     m_nVoieDesiree = other.m_nVoieDesiree;
 
@@ -490,11 +464,6 @@ Vehicule::Vehicule
 
     m_pNextVoie = NULL;
 
-    m_pWEmission = new double[Loi_emission::Nb_Octaves+1];
-
-    for(int i=0; i<Loi_emission::Nb_Octaves+1; i++)
-        m_pWEmission[i] = 0;
-
     // ATTENTION : EN DUR !!!
     m_bAccMaxCalc = false;
 
@@ -596,10 +565,6 @@ Vehicule::~Vehicule
 
     if(m_pAcc)
         delete [] m_pAcc;   
-
-    if(m_pWEmission)
-        delete [] m_pWEmission;
-    m_pWEmission = NULL;
 
     if(m_pDF)
         delete m_pDF;
@@ -2063,23 +2028,7 @@ void Vehicule::SortieTrafic
         }
 
         // Document et Trace XML
-        ssTuyau = pVoie0->GetParent()->GetLabel();		
-
-        // Intégration EVE
-        if( m_pReseau->GetSymMode()==Reseau::SYM_MODE_STEP_EVE )
-        {
-            ssTuyauEx = m_pReseau->GetLibelleTronconEve( m_pTuyau[0], nNumVoie - 1 );	// Tronçon au sens EVE	
-
-            // cas d'un mobile dans une brique de connexion : on indique le label du tronçon de sortie de brique
-            if( m_pTuyau[0]->GetBriqueParente() != NULL
-                && (m_pTuyau[0]->GetBriqueParente()->GetType() == 'C' || m_pTuyau[0]->GetBriqueParente()->GetType() == 'G'))
-            {
-                if(m_pNextTuyau)
-                {
-                    ssNextTuyauEx = m_pNextTuyau->GetLabel();
-                }
-            }
-        }
+        ssTuyau = pVoie0->GetParent()->GetLabel();
 
         // Longueur du mobile
         dbLongueur = GetLength();
@@ -3570,53 +3519,6 @@ std::map<int, MouvementsSortie> Vehicule::AdaptMouvementAutorises
 
 
 //================================================================
-void Vehicule::CalculEmission
-//----------------------------------------------------------------
-// Fonction  : Calcul des émissions
-// Version du: 06/10/2008 (d'après MQ - 2004)
-// Historique: 12/10/2006 (C.Bécarie - Tinea)
-//             Création
-//             06/10/2008 (C.Bécarie - INEO TINEA)
-//             Ajout gestion plusieurs sources acoustiques pour un 
-//             type de véhicule
-//================================================================
-(
-    Loi_emission  * Loi,
-    std::string     strType,    // Identifiant base de données
-    std::string     typ_rev     // Type de revêtement de la voie
-)
-{    
-    bool    bAcc;
-    int     nVitOld, nVitNew;
-
-    if(m_pTuyau[1] )
-    {
-        bAcc = (m_pAcc[0] >= 1 && m_pAcc[1] >= 1) || (m_pAcc[0] <= -0.2 && m_pAcc[1] >= -0.2) || ( (m_pAcc[0] > -0.2 && m_pAcc[0] < 1) && (m_pAcc[1] > -0.2 && m_pAcc[1] < 1) );
-
-        nVitNew = (int)(m_pVit[0] *3.6);
-        if( m_pVit[0]*3.6 > 20)
-        {
-            if (div(nVitNew,2).rem > 0)
-                nVitNew--;
-        }
-
-        nVitOld = (int)(m_pVit[1] *3.6);
-        if( m_pVit[1]*3.6 > 20)
-        {
-            if (div(nVitOld,2).rem > 0)
-                nVitOld--;
-        }
-
-        // Si même classe de vitesse, même allure et même revêtement, il est inutile
-        // de refaire le calcul !
-        if( nVitNew == nVitOld && bAcc && m_pTuyau[0]->GetRevetement()==m_pTuyau[1]->GetRevetement() )
-            return;
-    }
-
-    Loi->CalculEmissionBruit(m_pWEmission, m_pVit[0], m_pAcc[0], typ_rev, strType);
-}
-
-//================================================================
 void Vehicule::CalculEmissionAtmos
 //----------------------------------------------------------------
 // Fonction  : Calcul des émissions atmosphériques
@@ -3706,178 +3608,6 @@ void Vehicule::CalculEmissionAtmos
         m_dbCumPM += dbValPM;
 
 }
-
-//================================================================
-void Vehicule::SortieEmission
-//----------------------------------------------------------------
-// Fonction  : Ecriture des fichiers émission acoustique
-// Version du: 12/10/2006
-// Historique: 12/10/2006 (C.Bécarie - Tinea)
-//             Création
-//================================================================
-(        
-)
-{
-    double dbAbs;
-    double dbOrd;
-    double dbHaut;
-    double dbAbsAnt;
-    double dbOrdAnt;
-    double dbHautAnt;
-    char   strName[50];
-    char   strLigne[50];
-    char   strID[12];
-    double  dbLwEmission;
-
-    if( !m_pVoie[0] )     // Le véhicule vient juste d'être créé, on ne le prend pas encore en compte (pas dans le trafic)
-        return;
-
-    CalculXYZ(dbAbs, dbOrd, dbHaut);
-
-    if( m_pTuyau[1] )
-    {
-        CalculXYZ(dbAbsAnt, dbOrdAnt, dbHautAnt, false);    
-    }
-    else  // le véhicule vient d être créé
-    {
-        // Abscisse du véhicule au début du pas de temps
-        dbAbsAnt = m_pVoie[0]->GetAbsAmont();
-
-        // Ordonnée du véhicule au début du pas de temps
-        dbOrdAnt = m_pVoie[0]->GetOrdAmont();
-
-        // Hauteur du véhicule au début du pas de temps
-        dbHautAnt = m_pVoie[0]->GetHautAmont();
-    }
-
-    snprintf(strID,12,"%d",m_nID);
-    strcpy(strName, m_pTypeVehicule->GetLabel().c_str());
-    strcat(strName, "_");
-    strcat(strName, strID );
-    if( GetFleet() != m_pReseau->GetSymuViaFleet() )
-    {
-        strcpy(strLigne, GetTrip()->GetID().c_str());
-    }
-    else
-    {
-        strcpy(strLigne, "VEH");
-    }
-
-    double * dbVal;
-    dbVal = new double[Loi_emission::Nb_Octaves+1];
-
-    for(int i=0; i<=Loi_emission::Nb_Octaves; i++)
-    {
-        if( m_pWEmission[i] > 0)
-            dbLwEmission = 10 * log10 (m_pWEmission[i] / pow((double)10, (double)-12) );
-        else
-            dbLwEmission = 0;
-
-        dbVal[i] = dbLwEmission;    
-    }    
-
-    std::string ssName = strName;
-    std::string ssType = m_pTypeVehicule->GetLabel();
-    std::string ssLigne = strLigne;
-
-    m_pReseau->m_XmlDocAcoustique->AddSourcePonctuelle( m_nID, dbAbsAnt, dbOrdAnt, dbHautAnt, dbAbs ,dbOrd, dbHaut, dbVal);
-
-}
-
-//================================================================
-Segment* Vehicule::GetCellAcoustique
-//----------------------------------------------------------------
-// Fonction  : Retourne la cellule acoustique sur laquelle est positionnée
-//             le véhicule à la fin du pas de temps
-// Version du: 29/09/2008
-// Historique: 17/10/2006 (C.Bécarie - Tinea)
-//             Création
-//             29/09/2008
-//             La source acoustique est définie par sa position par
-//              rapport à l'avant du véhicule
-//================================================================
-(
-    double dbPos    // Position de la source acoustique du véhicule
-)
-{
-    int i;
-    int nCell;
-
-    if(!m_pVoie[0] || m_pTuyau[0]->GetType() != Tuyau::TT_MICRO)
-        return NULL;
-
-    nCell = -1;
-
-    if( m_pPos[0] + dbPos >=0 ) // Sur le tronçon à la fin du pas de temps
-    {
-        for(i=0; i< ((TuyauMicro*)m_pTuyau[0])->GetNbCellAcoustique() && nCell < 0 ;i++ )
-        {
-            if( m_pPos[0] + dbPos <= ((i+1)*m_pVoie[0]->GetLength() / 
-                ((TuyauMicro*)m_pTuyau[0])->GetNbCellAcoustique()) || fabs(m_pPos[0] + dbPos - ((i+1)*m_pVoie[0]->GetLength() /  ((TuyauMicro*)m_pTuyau[0])->GetNbCellAcoustique()))<0.1 )
-                nCell = i;
-        }
-
-        if( nCell >= 0 )
-            return m_pVoie[0]->GetLstCellAcoustique()[nCell];        
-    } // Sur la voie précédente
-    else
-    {        
-        if(m_pPrevVoie)
-        {
-            for(i=0; i< ((TuyauMicro*)m_pPrevVoie->GetParent())->GetNbCellAcoustique() && nCell < 0 ;i++ )
-            {
-                if( m_pPrevVoie->GetLength() + m_pPos[0] + dbPos <= ((i+1)*m_pPrevVoie->GetLength() /  ((TuyauMicro*)m_pPrevVoie->GetParent())->GetNbCellAcoustique()) || fabs(m_pPrevVoie->GetLength() + m_pPos[0] + dbPos - ((i+1)*m_pPrevVoie->GetLength() /  ((TuyauMicro*)m_pPrevVoie->GetParent())->GetNbCellAcoustique())) < 0.1)
-                    nCell = i;
-            }
-
-            if( nCell >= 0 )
-                return m_pPrevVoie->GetLstCellAcoustique()[nCell];            
-        }
-    }
-    return NULL;
-}
-
-
-//================================================================
-Segment* Vehicule::GetCellSirane
-//----------------------------------------------------------------
-// Fonction  : Retourne la cellule "Sirane" sur laquelle est
-//             positionnée le véhicule à la fin du pas de temps
-// Version du: 06/04/2012
-// Historique: 06/04/2012 (O. Tonck - IPSIS)
-//             Création
-//================================================================
-(
-)
-{
-    int nCell;
-
-    if(!m_pTuyau[0] || m_pTuyau[0]->GetType() != Tuyau::TT_MICRO)
-        return NULL;	
-
-    // cas de la brique de connexion
-    if(m_pTuyau[0]->GetBriqueParente())
-    {
-        return m_pTuyau[0]->GetBriqueParente()->GetCellSirane();
-    }
-
-    nCell = -1;
-
-    const std::vector<Segment*> & cells = ((TuyauMicro*)m_pTuyau[0])->GetSiraneCells();
-
-
-    for(int i=0; i< (int)cells.size() && nCell < 0 ;i++ )
-    {
-        if( m_pPos[0] <= ((i+1)*m_pTuyau[0]->GetLength() /  cells.size()) || fabs(m_pPos[0] - ((i+1)*m_pTuyau[0]->GetLength() /  cells.size()))<0.1 )
-            nCell = i;
-    }
-
-    if( nCell >= 0 )
-        return cells[nCell];        
-
-    return NULL;
-}
-
 
 //================================================================
 double Vehicule::GetDstParcourueEx
@@ -5823,16 +5553,6 @@ void PlageAcceleration::serialize(Archive & ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(dbAcc);
 }
 
-template void SrcAcoustique::serialize(boost::archive::xml_woarchive & ar, const unsigned int version);
-template void SrcAcoustique::serialize(boost::archive::xml_wiarchive & ar, const unsigned int version);
-
-template<class Archive>
-void SrcAcoustique::serialize(Archive & ar, const unsigned int version)
-{
-    ar & BOOST_SERIALIZATION_NVP(dbPosition);
-    ar & BOOST_SERIALIZATION_NVP(strIDDataBase);
-}
-
 template void TypeVehicule::serialize(boost::archive::xml_woarchive & ar, const unsigned int version);
 template void TypeVehicule::serialize(boost::archive::xml_wiarchive & ar, const unsigned int version);
 
@@ -5868,7 +5588,6 @@ void TypeVehicule::serialize(Archive & ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(m_dbTauChgtVoie);
     ar & BOOST_SERIALIZATION_NVP(m_dbPiRabattement);
     ar & BOOST_SERIALIZATION_NVP(m_LstPlagesAcceleration);
-    ar & BOOST_SERIALIZATION_NVP(m_LstSrcAcoustiques);
 
     ar & BOOST_SERIALIZATION_NVP(m_dbVitLaterale);
 
@@ -5985,8 +5704,6 @@ void Vehicule::serialize(Archive & ar, const unsigned int version)
         ar & BOOST_SERIALIZATION_NVP(m_pNextTuyau);
 
         ar & BOOST_SERIALIZATION_NVP(m_pPrevVoie);
-        int nbOct = Loi_emission::Nb_Octaves+1;
-        SerialiseTab<Archive, double>(ar, "m_pWEmission", m_pWEmission, nbOct);
 
         ar & BOOST_SERIALIZATION_NVP(m_dbInstantCreation);
         ar & BOOST_SERIALIZATION_NVP(m_dbInstantEntree);

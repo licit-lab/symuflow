@@ -20,7 +20,6 @@ class Segment;
 class SegmentMacro;
 class Frontiere;
 class CDiagrammeFondamental;
-class Loi_emission;
 class RegulationBrique;
 class SousTypeVehicule;
 class ControleurDeFeux;
@@ -109,14 +108,9 @@ public:
         virtual void    InitVarSimu         () = 0;
         virtual void    TrafficOutput       ()                                              = 0;
         virtual void    EndComputeTraffic   (double dbInstant)                               = 0;
-        virtual void    ComputeNoise         (Loi_emission* Loi)                               = 0;
 
         virtual void    ComputeOffer         (double dbInstant =0)                            = 0;
         virtual void    ComputeDemand       (double dbInstSimu, double dbInstant =0)                            = 0;
-
-        virtual bool    Discretisation      (int nNbVoie)                                   = 0;
-
-        virtual void    EmissionOutput(){};                                                     
 
 		int             GetNum();		
 
@@ -167,8 +161,6 @@ public:
     virtual bool        Discretisation          (int nNbVoie);
     virtual void        InitVarSimu             ();
 
-	virtual bool        InitSimulation          (bool bCalculAcoustique, bool bSirane, std::string strTuyau);
-
     virtual void        ComputeDemand           (double dbInstSimu, double dbInstant =0);
     virtual void        ComputeOffer             (double dbInstant =0);
 
@@ -177,12 +169,7 @@ public:
     virtual void        EndComputeTraffic         (double dbInstant){};
     virtual void        ComputeTrafficEx          (double dbInstant);
 
-    virtual void        ComputeNoise            (Loi_emission* Loi);
-
     SegmentMacro*        GetSegment              (int num);
-
-    virtual void        InitAcousticVariables(){};
-    virtual void        EmissionOutput(){};
 
     CDiagrammeFondamental*  GetDiagFonda();
 
@@ -202,16 +189,9 @@ public:
     // Constructeur
     VoieMicro    ();
     VoieMicro    (double dbLargeur, double dbVitReg);
-
-    // Destructeur
-    ~VoieMicro   ();
-
 private:
 
 	// Variables descriptives
-    Segment**           m_pLstCellAcoustique;   // liste des cellules acoustiques
-    int                 m_nNbCellAcoustique;    // nombre de cellules acoustiques
-
     bool                m_bChgtVoieObligatoire; // indique si le chgt de voie est obligatoire ou non
                                                 // (obligatoire dans le cas où la voie disparaît)   
     bool                m_bChgtVoieObligatoireEch;  // premet de caractériser une voie d'insertion "d'échange" (EVOLUTION n°70)
@@ -242,17 +222,13 @@ private:
 public:
     // Méthodes virtuelles pures de Voie
     virtual void    InitVarSimu         (){};
-	virtual bool    InitSimulation      (bool bCalculAcoustique, bool bSirane, std::string strTuyau);
     virtual void    TrafficOutput       ()                                              {};
     virtual void    ComputeTraffic        (double dbInstant);
     virtual void    EndComputeTraffic     (double dbInstant);
     virtual void    ComputeTrafficEx      (double dbInstant)                                  {};
-    virtual void    ComputeNoise         (Loi_emission* Loi)                               {};
 
     virtual void    ComputeOffer         (double dbInstant =0);
     virtual void    ComputeDemand       (double dbInstSimu, double dbInstant =0);
-
-    virtual bool    Discretisation      (int nNbVoie);
 
     // Méthodes d'entrée sortie
     double          GetNbVehSASEntree(){return m_dbNbVehSASEntree;}
@@ -266,8 +242,6 @@ public:
     void            SetVehLeader(boost::shared_ptr<Vehicule> pVeh){m_pVehLeader=pVeh;}
     boost::shared_ptr<Vehicule>       GetVehLeader(){return m_pVehLeader;}
 
-    void            SupprimeCellAcoustique        ();
-
     void            SetChgtVoieObligatoire        (std::vector<TypeVehicule*> pLstExceptions = std::vector<TypeVehicule*>()){m_bChgtVoieObligatoire = true;m_LstExceptionsTypesVehiculesChgtVoieObligatoire = pLstExceptions;};
 	void            SetNotChgtVoieObligatoire     (){m_bChgtVoieObligatoire = false;}
     bool            IsChgtVoieObligatoire         (){return m_bChgtVoieObligatoire==true;}
@@ -276,11 +250,6 @@ public:
     // EVOLUTION n°70 - cas particulier des convergents d'insertion "échangeurs"
     void            SetChgtVoieObligatoireEch   () {m_bChgtVoieObligatoireEch = true;}
     bool            IsChgtVoieObligatoireEch    (){return m_bChgtVoieObligatoireEch;}
-
-    Segment**       GetLstCellAcoustique(){return m_pLstCellAcoustique;};
-
-    virtual void    InitAcousticVariables();
-    virtual void    EmissionOutput();
 
     VoieMicro*      GetPrevVoie(){return m_pPrevVoie;};
     void            SetPrevVoie(VoieMicro* pVoie){m_pPrevVoie = pVoie;};

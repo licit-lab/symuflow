@@ -6,7 +6,7 @@ class Vehicule;
 class ConnectionPonctuel;
 class Reseau;
 
-//! Définie un lien/tuyau/troncon pour un calcul mésoscopique
+//! Dï¿½finie un lien/tuyau/troncon pour un calcul mï¿½soscopique
 class CTuyauMeso :
 	public TuyauMicro
 {
@@ -18,14 +18,13 @@ public:
 	CTuyauMeso( Reseau* pReseau, std::string _Nom,char _Type_amont ,char _Type_aval,ConnectionPonctuel *_p_aval,ConnectionPonctuel *_p_amont,
                 char typevoie, std::string nom_rev, std::vector<double> larg_voie, double _Abscisse_amont,double _Ordonnee_amont,
                 double _Abscisse_aval,double _Ordonnee_aval, double _Hauteur_amont, double _Hauteur_aval, int _Nb_voies,
-                double pastemps,
-                int nNbCellAcoustique, double dbVitReg, double dbVitCat, double dbCellAcousLength, const std::string & strRoadLabel,
+                double pastemps, double dbVitReg, double dbVitCat, const std::string & strRoadLabel,
                 ETuyauType resolution);
 
 	//! Destructeur
 	virtual ~CTuyauMeso(void);
 
-    // ** Méthodes hérités
+    // ** Mï¿½thodes hï¿½ritï¿½s
     //! Retourne le type du troncon
     virtual ETuyauType GetType() const;
 
@@ -42,11 +41,11 @@ public:
     //! Retourne les couples vehicule, instant arrivant sur le troncon
     std::list< std::pair< double, Vehicule*> > GetArrivalTimes() const;
 
-    //! Obtient le dernier temps d'arrivé
+    //! Obtient le dernier temps d'arrivï¿½
     double GetMaxArrivalTime() const;
 
   
-    //! Obtient la prochaine arrivée d'un troncon
+    //! Obtient la prochaine arrivï¿½e d'un troncon
     std::pair<double,Vehicule* >  GetMinArrival() const;
 
      //! Obtient le prochain couple Vehicule, instant arrivant sur le troncon
@@ -55,16 +54,16 @@ public:
     //! Ajoute un couple vehicule, instant arrivant sur le troncon.
     void AddArrival(double dArrivalTime, Vehicule *pVehicule, bool bEnsureIsLastArrival);
 
-    //! Vide les arrivés sur le troncon pTuyau de la connexion
+    //! Vide les arrivï¿½s sur le troncon pTuyau de la connexion
     void ClearArrivals( );
    
-    //! Défini le prochain couple instant à "passer" le connexion vers le tuyau 
+    //! Dï¿½fini le prochain couple instant ï¿½ "passer" le connexion vers le tuyau 
     void SetNextSupplyTime(double dSupplyTime ){ m_dSupplyTime = dSupplyTime;}
 
-    //! Obtient le prochain couple tuyau instant à "passer" le connexion vers le tuyau pTuyau
+    //! Obtient le prochain couple tuyau instant ï¿½ "passer" le connexion vers le tuyau pTuyau
     double GetNextSupplyTime() const {return m_dSupplyTime; }
 
-    //! Obtient le vehicule sur le troncon à l'indice iRank
+    //! Obtient le vehicule sur le troncon ï¿½ l'indice iRank
     Vehicule* GetCurrentVehiculeAt(int iRank) const;
 
     //! Obtient le temps de passage aval pour le rang iRank
@@ -86,7 +85,7 @@ public:
     //! Obtient les temps de passages des vehicules entrant sur le pTuyau de la connexion
     std::deque<double> GetUpstreamPassingTimes( ) const;
 
-    //! Remplace la liste des arrivées de vehicules sur un troncon de la connexion
+    //! Remplace la liste des arrivï¿½es de vehicules sur un troncon de la connexion
     void ReplaceArrivalTimes(std::list<std::pair<double, Vehicule *>  >newList );
 
     //! Obtient le prochain vehicule entrant sur le noeud
@@ -103,7 +102,7 @@ public:
 
     void ToMeso();
 
-    // Sorties dans le fichier résultat
+    // Sorties dans le fichier rï¿½sultat
     void SortieTrafic(DocTrafic *pXMLDocTrafic);
 
     // Accesseurs pour la sauvegarde/restitution en cas d'affectation dynamique...
@@ -118,7 +117,7 @@ public:
 
 private:
 	
-    //! Liste ordonnée des vehicules présents sur le troncon
+    //! Liste ordonnï¿½e des vehicules prï¿½sents sur le troncon
 	std::deque<Vehicule *> m_currentVehicules;
 
 	//! Moyenne courante des w des vehicules du troncon
@@ -127,10 +126,10 @@ private:
 	//! Moyenne courante des k des vehicules du troncons
 	double m_dCurrentMeanK;
 
-    //! Temps d'arrivé des véhicules sur le troncon et le véhicule concerné
+    //! Temps d'arrivï¿½ des vï¿½hicules sur le troncon et le vï¿½hicule concernï¿½
     std::list< std::pair<double, Vehicule*> >  m_arrivals;
 
-    //! Prochain temps d'arrivé des véhicules sur le troncon et le véhicule concerné
+    //! Prochain temps d'arrivï¿½ des vï¿½hicules sur le troncon et le vï¿½hicule concernï¿½
     std::pair<double, Vehicule*> m_nextArrival;
 
     //! Temps de passages depuis la connexion amont 
@@ -143,7 +142,7 @@ private:
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 	friend class boost::serialization::access;

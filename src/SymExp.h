@@ -38,7 +38,6 @@ namespace boost {
 
 // Chargement du scenario
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymLoadNetwork(std::string sTmpXmlDataFile, std::string sScenarioID = "", std::string sOutdir = "");
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymLoadNetwork(std::string sTmpXmlDataFile, eveShared::SimulationInfo * &pSInfo, eveShared::SymuviaNetwork * &pSNetwork, std::string sScenarioID = "", std::string sOutdir = "");
 SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymLoadNetworkPar(std::string sTmpXmlDataFile, std::string sScenarioID = "", std::string sOutdir = "");
 
 // Sortie de la simulation
@@ -52,18 +51,10 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRun();
 // Exécution complète d'une simulation de trafic
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunTraffic();
 
-// Exécution complète d'une simulation des émissions acoustiques
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunAcousticEmissions();
-
-// Exécution complète d'une simulation des émissions atmosphériques
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunAirEmissions();
-
-
 // ----- Simulation pas à pas -----
 
 // Exécution d'un pas de temps d'une simulation (et sortie de l'état de la simulation)
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStep(std::string &sXmlFluxInstant, bool bTrace, bool &bNEnd);
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStep(eveShared::TrafficState * &pTrafficEVE, bool bTrace, bool &bNEnd);
 
 SYMUBRUIT_EXPORT char* SYMUBRUIT_CDECL SymRunNextStepNode(bool bTrace, bool &bNEnd);
 
@@ -71,18 +62,12 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStep(int networkId, std::string 
 
 // Exécution d'un pas de temps d'une simulation de trafic
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTraffic(std::string &sXmlFluxInstant, bool bTrace, bool &bNEnd);
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTraffic(eveShared::TrafficState * &pTrafficEVE, bool bTrace, bool &bNEnd);
-
-// Exécution d'un pas de temps d'une simulation de trafic et d'acoustique
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTrafficAcoustic(std::string &sXmlFluxInstant, bool bCel, bool bSrc, bool bTrace, bool &bNEnd);
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTrafficAcoustic(eveShared::TrafficState * &pTrafficEVE, bool bCel, bool bSrc, bool bTrace, bool &bNEnd);
 
 // Exécution d'un pas de temps d'une simulation de trafic et d'atmospherique
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunNextStepTrafficAtmospheric(std::string &sXmlFluxInstant, bool bTrace, bool &bNEnd);
 
 // Déplacement vers un pas de temps d'indice donné
 SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunToStep(int nStep, std::string &sXmlFluxInstant, bool bTrace, bool &bNEnd);
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunToStep(int nStep, eveShared::TrafficState * &pTrafficEVE, bool bTrace, bool &bNEnd);
 
 // Réinitialisation de la simulation au premier instant
 SYMUBRUIT_EXPORT int  SYMUBRUIT_CDECL SymReset();
@@ -140,13 +125,7 @@ SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymSetCapacities(int networkID, const std:
 
 #endif // USE_SYMUCORE
 
-// Ménage
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymRunDeleteTraffic(eveShared::TrafficState * &pTrafficEVE);
-
 // ----- Mise à jour des scenari -----
-
-// Mise à jour du scenario
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymUpdateNetwork(std::string sXmlDataFile);
 
 // Mise à jour d'un plan de feux du réseau
 SYMUBRUIT_EXPORT int  SYMUBRUIT_CDECL SymSendSignalPlan(std::string sCDF, std::string sSP);
@@ -176,12 +155,6 @@ SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymAlterRoute(int nIdVeh, char*  links[], i
 SYMUBRUIT_EXPORT char* SYMUBRUIT_CDECL SymGetVehiclesPaths(char*  vehiculeId[], int iLength);
 
 // ----- Sorties complémentaires -----
-
-// Génération du reseau EVE
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymGenEveNetwork(eveShared::EveNetwork * &pNetwork);
-
-// Génération de la liste des cellules acoustiques
-SYMUBRUIT_EXPORT bool SYMUBRUIT_CDECL SymGenAcousticCells();
 
 // ----- Sérialisation -----
 

@@ -223,12 +223,9 @@ public:
         virtual bool    SortieGeoCell(std::ofstream Fic, bool bEmission){return true;};        
 
         // Méthodes virtuelles pures
-		virtual bool    InitSimulation(bool bAcou, bool bSirane, std::string strName)   = 0;
         virtual void    ComputeTraffic(double nInstant)                      = 0;
         virtual void    ComputeTrafficEx(double nInstant)                    = 0;
         virtual void    TrafficOutput()                                  = 0;
-        virtual void    EmissionOutput()            = 0;
-        virtual void    InitAcousticVariables()                      = 0;
 
 		void			SetReseau(Reseau *pR){m_pReseau = pR;};
 

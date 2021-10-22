@@ -2134,11 +2134,6 @@ void XMLDocTrafic::AddSimFeux(const std::string & sCtrlFeux, const std::string &
     }
 }
 
-void XMLDocTrafic::AddSimFeuxEVE(const std::string & sCtrlFeux, const std::string & sTE, const std::string & sTS, int bEtatFeu, int bPremierInstCycle, int bPrioritaire)
-{
-
-}
-
 // Ajout des données complète trafic d'une cellule de discrétisation pour l'instant considéré
 void XMLDocTrafic::AddCellSimu(int nID, double dbConc, double dbDebit, double dbVitAm, double dbAccAm, double dbNAm, double dbVitAv, double dbAccAv, double dbNAv,
 	const std::string & strLibelle, const std::string & strTuyau, double dbXam, double dbYam, double dbZam, double dbXav,  double dbYav, double dbZav)

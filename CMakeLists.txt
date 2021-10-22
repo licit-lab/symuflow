@@ -73,18 +73,6 @@ else()
     message(STATUS "\t XercesC library is missing")
 endif()
 
-# ODBC Search
-find_package(ODBC REQUIRED)
-
-if(ODBC_FOUND)
-    message(STATUS "Library ODBC is available")
-    message(STATUS "\t ODBC library: ${ODBC_LIBRARY},\n \t Headers in: ${ODBC_INCLUDE_DIR}")
-    include_directories(${ODBC_INCLUDE_DIR})
-    message(STATUS "\t ODBC headers included")
-else()
-    message(STATUS "\t ODBC library is missing")
-endif()
-
 # Python Search
 find_package(Python3 3.9 COMPONENTS Interpreter Development REQUIRED)
 

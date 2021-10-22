@@ -38,11 +38,6 @@ namespace boost {
     class mutex;
 }
 
-namespace eveShared {
-    class EveNetwork;
-    class EveTroncon;
-}
-
 #ifdef USE_SYMUCORE
 #include <SymuCore/Utils/SymuCoreConstants.h>
 #include <SymuCore/Graph/Model/ListTimeFrame.h>
@@ -77,18 +72,11 @@ class Repartiteur;
 class Sortie;
 class Entree;
 class Arret;
-class Loi_emission;
 class Vehicule;
 class TypeVehicule;
 class SensorsManagers;
 class DocTrafic;
 class XMLDocTrafic;
-class DocAcoustique;
-class TraceDocTrafic;
-class XMLDocAcoustique;
-class EVEDocAcoustique;
-class XMLDocEmissionsAtmo;
-class XMLDocSirane;
 class XMLReaderTrafic;
 class Convergent;
 class Divergent;
@@ -223,11 +211,7 @@ public:
 
         std::deque<CMotif*>                 m_LstMotifs;                    // Liste des motifs de déplacement des usagers
 
-        bool                        m_bInitSimuTrafic;          // Indique si l'initialisation de la simulation du trafic a été faite        
-        bool                        m_bInitSimuEmissions;       // Indique si l'initialisation de la simulation émissions a été faite
-
-        bool                        m_bAcousCell;				// Indique si les émissions acoustiques sont restituées pour chaque cellule du tronçon
-		bool                        m_bAcousSrcs;				// Indique si les émissions acoustiques sont restituées pour chaque source
+        bool                        m_bInitSimuTrafic;          // Indique si l'initialisation de la simulation du trafic a été faite
 
 		double			m_dbInstSimu;							// instant de la simulation
         double			m_dbInstSimuMeso;						// instant de la simulation Mesoscopique
@@ -378,12 +362,6 @@ private:
 
 
         bool m_bSimuTrafic;			// Indique si il faut lancer la simulation du trafic
-        bool m_bSimuAcoustique;     // Indique si il faut lancer la simulation acoustique      
-        bool m_bSimuAir;            // Indique si il faut lancer la simulation acoustique   
-        bool m_bSimuSirane;          // Indique si il faut produire les sorties nécessaires à Sirane (émissions polluants)
-
-        // Variables liées au calcul des émissions de bruit
-        Loi_emission* Loi_emis; // p sur l'objet loi d'émission
 
         // Variables liées à la simulation microscopique
         bool            m_bRelancerCalculRepartiteur;           // Indique si il faut relancer les calculs des répartiteurs (dans le cas où la demande ou l'offre ont été modifées au cours du pas de temps)
@@ -409,9 +387,7 @@ private:
 		std::string				    m_sLoipoursuite;				// Loi de poursuite
 
         bool                        m_bProcDec;                 // Indique si la procédure de correction de la décélération doit être lancée
-        double                      m_dbDecTaux;                // Taux de décélartion à prendre en compte		
-
-        char                        m_cTypeSortieAcoustique;        // Type de sortie acoustique (C: cellule, P:ponctuel)
+        double                      m_dbDecTaux;                // Taux de décélartion à prendre en compte
 
         bool                        m_bOffreCvgDeltaN;          // Indique le type de calcul de l'offre des convergents du réseau
 
@@ -428,13 +404,6 @@ private:
 
 		Affectation*				m_pModuleAffectation;		// Module d'affectation calculée
 		bool						m_bSaveAffectation;			// Sauvegarde des information d'affectation
-
-        // Paramètres pour production des données nécessairesà Sirane (CityDyne)
-        int                         m_nNbCellSirane;             // Nombre de cellules par tronçon pour Sirane
-        double                      m_dbMinLongueurCellSirane;   // Longueur minimum d'une cellule pour Sirane
-        double                      m_dbPeriodeAgregationSirane; // Période d'agrégation pour les cellules Sirane
-        double                      m_dbDebutPeriodeSirane;      // Instant de démarrage de la période Sirane courante
-        bool                        m_bExtensionBarycentresSirane; // Permet de générer des géométries incluant les barycentre des briques amont/aval et sans diviser en cellules
 
         double                      m_dbTetaLogit;
         int                         m_nMode;
@@ -564,9 +533,6 @@ public:
 
 		// Gestion des sorties XML
         std::deque< TimeVariation<TraceDocTrafic> >    m_xmlDocTrafics ;				// Document XML de sortie du trafic
-		DocAcoustique		*	m_XmlDocAcoustique;			// Document XML de sortie des émissions acoustiques
-		XMLDocEmissionsAtmo		*	m_XmlDocAtmo;               // Document XML de sortie des émissions atmosphériques
-        XMLDocSirane            *   m_XmlDocSirane;             // Document XML de sortie des cellules pour Sirane (CityDyne)
         CSVOutputWriter         *   m_CSVOutputWriter;          // Writer pour les fichiers CSV
 		XMLReaderTrafic*			m_XmlReaderTrafic;			// Objet permettant d'exploiter le fichier XML de trafic  
         std::string					m_strFileToLoadState;       // Fichier pour le chargement du réseaux SymuVia
@@ -626,10 +592,8 @@ public:
         bool Execution();         // Fonction lancant les différents phases de l'execution de la simulation (Nom du fichier de définition du réseau)
 
 		bool InitSimuTrafic(bool bLastReplication = true) ;					                // initialisation de la simulation du trafic
-		bool InitSimuEmissions(bool bAcoustic, bool bAir, bool bSirane, bool bOnlyCells = false) ;		// initialisation de la simulation de l'acoustique
 
 		void FinSimuTrafic() ;					// initialisation de la simulation du trafic
-		void FinSimuEmissions(bool bAcoustic, bool bAir, bool bSirane) ;				// initialisation de la simulation de l'acoustique
 
         bool	SimuTrafic(bool & bStepCompleted);			                    // lance les différentes étapes de simulation du trafic pour un pas de temps. Renvoie vrai quand la simulation est terminée
 
@@ -638,14 +602,7 @@ public:
         void SimuTraficMeso();
         void SimuTraficMicroMacro();
 		bool	PostTimeStepSimulation();					// Fin de calcul d'un pas de temps d'une simulation
-		bool	SimuEmissions(bool bAcoustic, bool bAir, bool bSirane);	// lance les différentes étapes de simulation des émissions (acoustiques et/ou atmosphériques et/ou Sirane) pour un pas de temps. Renvoie vrai quand la simulation est terminée
 		bool	LoadTrafic();		                        // chargement des variables du trafic au pas de temps courant
-
-        // Fonctions spécifiques à l'intégration EVE                
-		void GenReseauCirculationFile (eveShared::EveNetwork * &pNetwork);    // Génération du fichier 'réseau circulation'
-        bool UpdateReseau (const std::string& ) ;                            // Chargement du fichier de modification au format XML        
-		std::string GetLibelleTronconEve (Tuyau *pT, int nVoie);
-
 
         // Fonctions de renvoi des variables du réseau
 		std::string	GetNetwork(bool bUseJSON = false);
@@ -916,7 +873,6 @@ public:
         double                          GetDureeSimu(){return m_dbDureeSimu;}
 
         bool                            IsInitSimuTrafic(){return m_bInitSimuTrafic;}
-        bool                            IsInitSimuEmissions(){return m_bInitSimuEmissions;}
 
         bool                            IsSortieTraj(){return m_bSortieTraj;}
         bool                            DoSortieTraj(){ return m_bSortieTraj  && !m_bDisableTrajectoriesOutput; }
@@ -931,18 +887,10 @@ public:
         bool							IsXmlOutput(){return m_bXmlOutput;}
 
         void                            SetSimuTrafic(bool bSimuTrafic){m_bSimuTrafic = bSimuTrafic;}
-        void                            SetSimuAcoustique(bool bSimuAcous){m_bSimuAcoustique = bSimuAcous;}
-        void                            SetSimuAir(bool bSimuAir){m_bSimuAir = bSimuAir;}
-        void                            SetSimuSirane(bool bSimuSirane){m_bSimuSirane= bSimuSirane;}
 
-        bool                            IsSimuAcoustique(){return m_bSimuAcoustique;}
         bool                            IsSimuTrafic(){return m_bSimuTrafic;}
-        bool                            IsSimuAir(){return m_bSimuAir;}
-        bool                            IsSimuSirane(){return m_bSimuSirane;}
 
         bool							IsProcAgressivite(){return m_bProcAgressivite;}
-
-        bool                            IsSortieAcoustiquePonctuel(){return m_cTypeSortieAcoustique=='P';}
 
 		double                          LoadLagOfVariation(XERCES_CPP_NAMESPACE::DOMNode *pXmlNodeVar, Logger & logger);
 
@@ -999,10 +947,6 @@ public:
 		double							GetChgtVoieGhostBevelLength(){return m_dbChgtVoieGhostBevelLength;}
 
 		void							SortieIndicateursInterDistance();
-
-        int                             GetNbCellSirane() {return m_nNbCellSirane;}
-        double                          GetMinLongueurCellSirane() {return m_dbMinLongueurCellSirane;}
-        bool                            GetExtensionBarycentresSirane() {return m_bExtensionBarycentresSirane;}
 
 // Pilotage
         // Demand
@@ -1119,7 +1063,6 @@ public:
 
 private:
     void Initialize();
-	eveShared::EveTroncon * CreateEveTroncon(const std::string &strID, const Point& PtAm, const Point& PtAv, const std::deque<Point*>& lstPtInterne, double dbLarg, double dbLong, const std::string& sSymTroncon, int nSymVoie, std::vector<ZoneZLevel> nzlevels, bool bTronconInterne);
     void UpdateVitessesReg();
     // renvoie l'ID du troncon prioritaire du convergent d'insertion
     std::string GetTronconAmontPrio(XERCES_CPP_NAMESPACE::DOMNode * cvtInsertionNode, Logger & logger); 

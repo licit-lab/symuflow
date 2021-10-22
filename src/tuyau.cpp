@@ -9,7 +9,6 @@
 #include "voie.h"
 #include "arret.h"
 #include "reseau.h"
-#include "XMLDocSirane.h"
 #include "Segment.h"
 #include "vehicule.h"
 #include "SystemUtil.h"
@@ -86,8 +85,7 @@ Tuyau::Tuyau()
 Tuyau::Tuyau(Reseau *pReseau, std::string _Nom,char _Type_amont ,char _Type_aval,ConnectionPonctuel *_p_aval,ConnectionPonctuel *_p_amont,
                  char typevoie, std::string nom_rev, std::vector<double> larg_voie, double _Abscisse_amont,double _Ordonnee_amont,
                  double _Abscisse_aval,double _Ordonnee_aval, double _Hauteur_amont,double _Hauteur_aval,
-                 int _Nb_cel, int _Nb_voies,
-                 double pastemps, double dbVitReg, double dbVitCat, const std::string & strRoadLabel):Troncon(dbVitReg, dbVitCat, _Nom)
+                 int _Nb_voies, double pastemps, double dbVitReg, double dbVitCat, const std::string & strRoadLabel):Troncon(dbVitReg, dbVitCat, _Nom)
 {
     m_pReseau = pReseau;    
 
@@ -101,7 +99,6 @@ Tuyau::Tuyau(Reseau *pReseau, std::string _Nom,char _Type_amont ,char _Type_aval
     SetExtAmont(_Abscisse_amont, _Ordonnee_amont, _Hauteur_amont);
     SetExtAval(_Abscisse_aval, _Ordonnee_aval, _Hauteur_aval);
 	
-	m_nNbCell =_Nb_cel;
     m_nNbVoiesDis = _Nb_voies;
 
 	m_nNbVoies  =_Nb_voies;
@@ -361,18 +358,6 @@ void Tuyau::FinCalculEcoulementConnections(double h)
     m_dbCoeffAval2 = 1 - m_dbCoeffAval1;
 }
 
-
-// Calcul des niveaux de bruit des segments du tronçon
-void TuyauMacro::ComputeNoise(Loi_emission* Loi)
-{
-  int i;
-
-  // calcul du bruit emis par les segments du troncon et ecriture des fichiers de sortie
-        for(i=0; i<m_nNbVoiesDis;i++)
-        {
-                m_pLstVoie[i]->ComputeNoise(Loi);
-        }
-}
 
 //---------------------------------------------------------------------------
 // Fonctions d'affectation des variables des tronçons
@@ -748,11 +733,11 @@ void TuyauMacro::TrafficOutput()
 (
  Reseau *pReseau, std::string _Nom,char _Type_amont ,char _Type_aval,ConnectionPonctuel *_p_aval,ConnectionPonctuel *_p_amont,
     char typevoie,  char nom_rev[256], std::vector<double> larg_voie, double _Abscisse_amont,double _Ordonnee_amont,
-    double _Abscisse_aval,double _Ordonnee_aval, double _Hauteur_amont, double _Hauteur_aval , int _Nb_cel, int _Nb_voies,
+    double _Abscisse_aval,double _Ordonnee_aval, double _Hauteur_amont, double _Hauteur_aval, int _Nb_voies,
     double pastemps, double dbVitReg, double dbVitCat, const std::string & strRoadLabel
 ) : Tuyau(pReseau, _Nom, _Type_amont , _Type_aval, _p_aval, _p_amont,
      typevoie, nom_rev, larg_voie, _Abscisse_amont, _Ordonnee_amont,
-     _Abscisse_aval, _Ordonnee_aval, _Hauteur_amont, _Hauteur_aval, _Nb_cel, _Nb_voies, pastemps, dbVitReg, dbVitCat, strRoadLabel)
+     _Abscisse_aval, _Ordonnee_aval, _Hauteur_amont, _Hauteur_aval, _Nb_voies, pastemps, dbVitReg, dbVitCat, strRoadLabel)
 {
     m_nResolution = RESOTUYAU_MACRO;
 
@@ -1249,28 +1234,6 @@ double Tuyau::GetMaxVitReg(double dbInst, double dbPos, int numVoie)
     }            
 }
 
-
-//================================================================
-    bool TuyauMacro::InitSimulation
-//----------------------------------------------------------------
-// Fonction  : Initialisation de la simulation
-// Version du: 03/03/2005
-// Historique: 03/03/2005 (C.Bécarie - Tinea)
-//================================================================
-(
-    bool		bCalculAcoustique,
-    bool        bSirane,
-	std::string strName
-)
-{
-        int i;
-
-        for(i=0; i<m_nNbVoiesDis; i++)
-                m_pLstVoie[i]->InitSimulation(bCalculAcoustique, bSirane, m_strLabel);
-
-        return true;
-}
-
 //================================================================
     void TuyauMacro::ComputeTraffic
 //----------------------------------------------------------------
@@ -1356,22 +1319,12 @@ double Tuyau::GetMaxVitReg(double dbInst, double dbPos, int numVoie)
  Reseau *pReseau, std::string _Nom,char _Type_amont ,char _Type_aval,ConnectionPonctuel *_p_aval,ConnectionPonctuel *_p_amont,
     char typevoie, std::string nom_rev, std::vector<double> larg_voie, double _Abscisse_amont,double _Ordonnee_amont,
     double _Abscisse_aval,double _Ordonnee_aval, double _Hauteur_amont, double _Hauteur_aval, int _Nb_voies,
-    double pastemps, int nNbCellAcoustique, double dbVitReg, double dbVitCat, double dbCellAcousLength, const std::string & strRoadLabel
+    double pastemps, double dbVitReg, double dbVitCat, const std::string & strRoadLabel
 ) : Tuyau(pReseau, _Nom, _Type_amont , _Type_aval, _p_aval, _p_amont,
      typevoie, nom_rev, larg_voie, _Abscisse_amont, _Ordonnee_amont,
-     _Abscisse_aval, _Ordonnee_aval, _Hauteur_amont, _Hauteur_aval, 0, _Nb_voies, pastemps, dbVitReg, dbVitCat, strRoadLabel)
+     _Abscisse_aval, _Ordonnee_aval, _Hauteur_amont, _Hauteur_aval, _Nb_voies, pastemps, dbVitReg, dbVitCat, strRoadLabel)
 {
     m_nResolution           = RESOTUYAU_MICRO;
-    
-    m_nNbCellAcoustique     = nNbCellAcoustique;
-    m_nNbCell = m_nNbCellAcoustique;
-
-	m_dbAcousticCellLength = 0;
-
-    // Vérification                                     
-    if(nNbCellAcoustique<1 && dbCellAcousLength<=0)
-        m_nNbCellAcoustique = 1;
-	m_dbAcousticCellLength = dbCellAcousLength;
 
     m_nNbVoiesDis = _Nb_voies;
 
@@ -1410,9 +1363,6 @@ double Tuyau::GetMaxVitReg(double dbInst, double dbPos, int numVoie)
 
 	DeleteLanes();
 
-    // Suppression des cellules Sirane
-    SupprimeCellSirane();
-
 #ifdef USE_SYMUCORE
     if(m_pEdieSensor)
         delete m_pEdieSensor;
@@ -1424,80 +1374,6 @@ double Tuyau::GetMaxVitReg(double dbInst, double dbPos, int numVoie)
 		delete m_pRobustTravelSpeedsHelper;
 #endif // USESYMUCORE
 }
-
-//================================================================
-    bool TuyauMicro::InitSimulation
-//----------------------------------------------------------------
-// Fonction  : Initialisation de la simulation
-// Version du: 03/03/2005
-// Historique: 03/03/2005 (C.Bécarie - Tinea)
-//================================================================
-(
-    bool		bCalculAcoustique,
-    bool        bSirane,
-	std::string strName
-)
-{
-    int i;
-    
-    for(i=0; i<m_nNbVoies; i++)
-    {
-        m_pLstVoie[i]->InitSimulation(bCalculAcoustique, bSirane, m_strLabel);
-        m_pLstVoie[i]->SetOffre( GetDebitMax());
-    }
-
-	if(m_pReseau->IsCptItineraire() )
-	{
-		std::deque<TypeVehicule*>::iterator itTP;
-		m_mapNbVehEntre.clear();
-		m_mapNbVehSorti.clear();
-		m_mapNbVehSortiPrev.clear();
-		m_mapNbVehEntrePrev.clear();
-
-		for(itTP = m_LstTypesVehicule.begin(); itTP != m_LstTypesVehicule.end(); itTP++)
-		{
-			m_mapNbVehEntre.insert( make_pair(*itTP, 0) );
-			m_mapNbVehSorti.insert( make_pair(*itTP, 0) );
-			m_mapNbVehSortiPrev.insert( make_pair(*itTP, 0) );
-			m_mapNbVehEntrePrev.insert( make_pair(*itTP, 0) );
-		}
-	}
-
-    // init des cellules sirane
-    if(bSirane)
-    {
-        for(size_t i = 0; i < m_LstCellSirane.size(); i++)
-        {
-            ePhaseCelluleSirane iPhase = UNDEFINED_PHASE;
-            // il faut que le segment soit entouré de deux briques
-            if(GetBriqueAmont() && GetBriqueAval())
-            {
-                bool bStartCell = i == 0;
-                bool bStopCell = i == m_LstCellSirane.size()-1;
-                // Si on n'a qu'une cellule sur le segment, on lui laisse le -1.
-                if(!(bStartCell && bStopCell))
-                {
-                    if(bStartCell)
-                    {
-                        iPhase = ACCELERATION_PHASE;
-                    }
-                    else if(bStopCell)
-                    {
-                        iPhase = DECELERATION_PHASE;
-                    }
-                    else
-                    {
-                        iPhase = STABILIZATION_PHASE;
-                    }
-                }
-            }
-            m_LstCellSirane[i]->InitSimulationSirane(iPhase);
-        }
-    }
-
-    return true;
-}
-
 
 //================================================================
     bool TuyauMicro::Segmentation
@@ -1569,8 +1445,7 @@ double Tuyau::GetMaxVitReg(double dbInst, double dbPos, int numVoie)
         if( m_nResolution == RESOTUYAU_MACRO )
             pas_espace=GetLength()/m_nNbCell;
 
-        pVoie->SetPropCom(m_pReseau, this, strTmp, m_strRevetement );
-        pVoie->SetPropSimu(m_nNbCellAcoustique,pas_espace,m_dbPasTemps);                                                                   
+        pVoie->SetPropCom(m_pReseau, this, strTmp, m_strRevetement );                                                                 
 
         // Initialisation des vitesses max d'entrée et de sortie de la voie
         pVoie->SetVitMaxEntree(GetVitesseMax());
@@ -1600,14 +1475,6 @@ double Tuyau::GetMaxVitReg(double dbInst, double dbPos, int numVoie)
             m_pLstVoie[i]->SetVoieGauche(NULL);
         else
             m_pLstVoie[i]->SetVoieGauche(m_pLstVoie[i+1]);
-    }
-
-    // Segmentation de la voie en cellule acoustique si besoin
-    // Finalement, on le fait tout le temps puisque ça se passe au moment du chargement !
-    if(  !m_pReseau->IsSortieAcoustiquePonctuel() )
-    {
-        for(int i=0; i<m_nNbVoies; i++)
-            bOk &= m_pLstVoie[i]->Discretisation(m_nNbVoies);
     }
     
     return bOk;
@@ -1713,39 +1580,6 @@ std::deque<Point> Tuyau::GetLineString
         *m_pReseau->FicTraficSAS << "Downstream SAS " << pVoie->GetLabel() << " " << pVoie->GetNbVehSASSortie() << std::endl;
     }
 }
-
-//================================================================
-    void TuyauMicro::InitAcousticVariables
-//----------------------------------------------------------------
-// Fonction  : Initialisation des variables acoustiques à chaque
-//             pas de temps
-// Version du: 17/10/2006
-// Historique: 17/10/2006 (C.Bécarie - Tinea)
-//================================================================
-(
-)
-{
-    for(int i=0; i<m_nNbVoies; i++)
-        m_pLstVoie[i]->InitAcousticVariables();
-}
-
-//================================================================
-    void TuyauMicro::EmissionOutput
-//----------------------------------------------------------------
-// Fonction  : Sortie des émissions
-// Version du: 17/10/2006
-// Historique: 17/10/2006 (C.Bécarie - Tinea)
-//================================================================
-(    
-)
-{
-	if( m_pReseau->m_bAcousCell )
-    {
-        for(int i=0; i<m_nNbVoies; i++)
-            m_pLstVoie[i]->EmissionOutput();
-    }            
-}
-
 
 //================================================================
     double  TuyauMicro::ComputeCost
@@ -2487,149 +2321,6 @@ void TuyauMicro::FinCalculTempsDeParcours( double dbInst, TypeVehicule *pTypeVeh
     }
 }
 
-
-//================================================================
-    void TuyauMicro::DiscretisationSirane
-//----------------------------------------------------------------
-// Fonction  : Segmentation du tuyau en cellules pour production
-// des sortie nécessaires pour Sirane (pour CityDyne)
-// Version du: 05/05/2012
-// Historique: 05/05/2012 (O.Tonck - IPSIS)
-//             Création
-//================================================================
-(
-)
-{
-    // ménage des cellules existantes
-    SupprimeCellSirane();
-
-    // Nombre de cellules par tronçon :
-    int nNbCell = m_pReseau->GetNbCellSirane();
-    // Longueur minimum d'une cellule
-    double dbMinLongueurCell = m_pReseau->GetMinLongueurCellSirane();
-
-    // on adapte le nombre de cellules afin de respecter la longueur de cellule minimum
-    if(GetLength()/nNbCell < dbMinLongueurCell)
-    {
-        nNbCell = max(1, (int)floor(GetLength() / dbMinLongueurCell));
-    }
-
-    // Création des cellules
-    double dbLongueurCell = GetLength()/nNbCell;
-    for(int i = 0; i < nNbCell; i++)
-    {
-        Segment * pCell = new Segment();
-        pCell->SetReseau(m_pReseau);
-        std::ostringstream oss;
-        oss << GetLabel() << "_CEL" << (i+1);
-        pCell->SetLabel(oss.str());
-
-        // Calcul des coordonnées du point amont de la cellule
-        Point pointAmont;
-        if(i == 0)
-        {
-            pointAmont = *GetExtAmont();
-        }
-        else
-        {
-            CalcCoordFromPos(this, i*dbLongueurCell, pointAmont);
-        }
-        pCell->SetExtAmont(pointAmont);
-
-        // Calcul des coordonnées du point aval de la cellule
-        Point pointAval;
-        if(i == nNbCell-1)
-        {
-            pointAval = *GetExtAval();
-        }
-        else
-        {
-            CalcCoordFromPos(this, (i+1)*dbLongueurCell, pointAval);
-        }
-        pCell->SetExtAval(pointAval);
-
-        // Calcul des points internes de la cellule
-        double dbAbscisseCurviligne = 0;
-        for(size_t pointInterneIdx = 0; pointInterneIdx < m_LstPtsInternes.size(); pointInterneIdx++)
-        {
-            if(pointInterneIdx == 0)
-            {
-                dbAbscisseCurviligne += sqrt((m_LstPtsInternes[pointInterneIdx]->dbX - GetExtAmont()->dbX)*(m_LstPtsInternes[pointInterneIdx]->dbX - GetExtAmont()->dbX)
-                    + (m_LstPtsInternes[pointInterneIdx]->dbY - GetExtAmont()->dbY)*(m_LstPtsInternes[pointInterneIdx]->dbY - GetExtAmont()->dbY)
-                    + (m_LstPtsInternes[pointInterneIdx]->dbZ - GetExtAmont()->dbZ)*(m_LstPtsInternes[pointInterneIdx]->dbZ - GetExtAmont()->dbZ));
-            }
-            else
-            {
-                dbAbscisseCurviligne += sqrt((m_LstPtsInternes[pointInterneIdx]->dbX - m_LstPtsInternes[pointInterneIdx-1]->dbX)*(m_LstPtsInternes[pointInterneIdx]->dbX - m_LstPtsInternes[pointInterneIdx-1]->dbX)
-                    + (m_LstPtsInternes[pointInterneIdx]->dbY - m_LstPtsInternes[pointInterneIdx-1]->dbY)*(m_LstPtsInternes[pointInterneIdx]->dbY - m_LstPtsInternes[pointInterneIdx-1]->dbY)
-                    + (m_LstPtsInternes[pointInterneIdx]->dbZ - m_LstPtsInternes[pointInterneIdx-1]->dbZ)*(m_LstPtsInternes[pointInterneIdx]->dbZ - m_LstPtsInternes[pointInterneIdx-1]->dbZ));
-            }
-
-            if(dbAbscisseCurviligne > i*dbLongueurCell && dbAbscisseCurviligne < (i+1)*dbLongueurCell)
-            {
-                pCell->AddPtInterne(m_LstPtsInternes[pointInterneIdx]->dbX, m_LstPtsInternes[pointInterneIdx]->dbY, m_LstPtsInternes[pointInterneIdx]->dbZ);
-            }
-            
-        }
-           
-        // Calcul de la longueur de la cellule
-        pCell->CalculeLongueur(0);
-
-        // mode de sortie avec barycentres
-        if(m_pReseau->GetExtensionBarycentresSirane())
-        {
-            // cas de la brique amont
-            if(GetBriqueAmont())
-            {
-                Point * ptt = new Point;
-                ptt->dbX = pCell->GetExtAmont()->dbX;
-                ptt->dbY = pCell->GetExtAmont()->dbY;
-                ptt->dbZ = pCell->GetExtAmont()->dbZ;
-                pCell->GetLstPtsInternes().push_front(ptt);
-                ptt = GetBriqueAmont()->CalculBarycentre();
-                pCell->SetExtAmont(*ptt);
-                delete ptt;
-            }
-            // cas de la brique aval
-            if(GetBriqueAval())
-            {
-                Point * ptt = new Point;
-                ptt->dbX = pCell->GetExtAval()->dbX;
-                ptt->dbY = pCell->GetExtAval()->dbY;
-                ptt->dbZ = pCell->GetExtAval()->dbZ;
-                pCell->GetLstPtsInternes().push_back(ptt);
-                ptt = GetBriqueAval()->CalculBarycentre();
-                pCell->SetExtAval(*ptt);
-                delete ptt;
-            }
-        }
-
-        m_LstCellSirane.push_back(pCell);
-    }
-
-
-}
-
-
-//================================================================
-    void TuyauMicro::SupprimeCellSirane
-//----------------------------------------------------------------
-// Fonction  : Nettoie les cellules Sirane
-// Version du: 05/05/2012
-// Historique: 05/05/2012 (O.Tonck - IPSIS)
-//             Création
-//================================================================
-(
-)
-{
-    for(size_t i = 0; i < m_LstCellSirane.size(); i++)
-    {
-        delete m_LstCellSirane[i];
-    }
-    m_LstCellSirane.clear();
-}
-  
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Sérialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2771,7 +2462,6 @@ void TuyauMicro::serialize(Archive & ar, const unsigned int version)
 {
     ar & BOOST_SERIALIZATION_BASE_OBJECT_NVP(Tuyau);
 
-    ar & BOOST_SERIALIZATION_NVP(m_nNbCellAcoustique);
     ar & BOOST_SERIALIZATION_NVP(m_bAgressif);
 
     ar & BOOST_SERIALIZATION_NVP(m_LstTraversee);
@@ -2790,5 +2480,4 @@ void TuyauMicro::serialize(Archive & ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(m_mapNbVehSortiPrev);
     ar & BOOST_SERIALIZATION_NVP(m_mapNbVehEntrePrev);
 
-    ar & BOOST_SERIALIZATION_NVP(m_LstCellSirane);
 }
