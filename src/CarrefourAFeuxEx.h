@@ -80,8 +80,7 @@ class CarrefourAFeuxEx : public BriqueDeConnexion
 public:
     // Constructeurs, destructeurs et assimilés
     CarrefourAFeuxEx(){}; // Constructeur par défaut    
-    CarrefourAFeuxEx(char *strID, double dbVitMax, double dbTagreg, double dbGamma, double dbMu , 
-                    double  dbLong, bool    bTraversees, Reseau *pReseau);
+    CarrefourAFeuxEx(char *strID, double dbVitMax, double dbTagreg, double dbGamma, double dbMu, bool bTraversees, Reseau *pReseau);
     ~CarrefourAFeuxEx(); // Destructeur
 
 public:
@@ -99,9 +98,7 @@ private:
 
     double      m_dbTagreg;                         // Période d'agrégation
     double      m_dbGamma;
-    double      m_dbMu;
-    
-    double      m_dbLongueurCellAcoustique;         // Longueur désirée des cellules acoustiques    
+    double      m_dbMu;  
 
     // Variables de simulation
 public:

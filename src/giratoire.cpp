@@ -157,7 +157,7 @@ using namespace std;
         std::vector<double> largeursVoies(m_nVoie, m_dbLargeurVoie);
         pTIAv = new TuyauMicro(m_pReseau, pT->GetLabel()+pTNext->GetLabel(), '0', '0', NULL, NULL, m_cType, m_strRevetement, largeursVoies, 
             dbExtAmX,  dbExtAmY, dbExtAvX,  dbExtAvY, dbExtAmZ, dbExtAvZ, 
-            m_nVoie, m_pReseau->GetTimeStep(),  0, m_dbVitMax, DBL_MAX, 0, "");
+            m_nVoie, m_pReseau->GetTimeStep(), m_dbVitMax, DBL_MAX, "");
 
         pTIAv->SetBriqueParente(this);
 

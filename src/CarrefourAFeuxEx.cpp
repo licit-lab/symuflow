@@ -39,8 +39,7 @@ XERCES_CPP_NAMESPACE_USE
     double  dbVitMax, 
     double  dbTagreg, 
     double  dbGamma, 
-    double  dbMu ,     
-    double  dbLong,
+    double  dbMu ,
     bool    bTraversees,
     Reseau *pReseau
 ):BriqueDeConnexion(strID, pReseau, 'C', bTraversees)
@@ -48,8 +47,7 @@ XERCES_CPP_NAMESPACE_USE
     m_dbVitMax = dbVitMax;
     m_dbTagreg = dbTagreg;
     m_dbGamma = dbGamma;
-    m_dbMu = dbMu;    
-    m_dbLongueurCellAcoustique = dbLong;	
+    m_dbMu = dbMu;	
 };
 
 //================================================================
@@ -423,8 +421,8 @@ XERCES_CPP_NAMESPACE_USE
 					pT = new TuyauMicro(m_pReseau, sTmp, 'D', 'D', pDvgtAv, pDvgtAm, 'M', pTAm->GetRevetement(), largeursVoiesTmp
 						, dbAmX, dbAmY, 
 						pt.dbX, pt.dbY, dbAmZ, pt.dbZ,
-						1, m_pReseau->GetTimeStep(), 0
-						, m_dbVitMax, DBL_MAX, m_dbLongueurCellAcoustique, "");
+						1, m_pReseau->GetTimeStep(),
+						m_dbVitMax, DBL_MAX, "");
 
 					entreeCAF->lstTBr.push_back(pT);
 
@@ -593,8 +591,8 @@ XERCES_CPP_NAMESPACE_USE
 								pT = new TuyauMicro(m_pReseau, pCvgtAm->GetID() + "_" + pCvgtAv->GetID(), 'C', 'C', pCvgtAv, pCvgtAm, 'M', pTAv->GetRevetement(), largeursVoiesTmp
 									, pt.dbX, pt.dbY, dbAvX, dbAvY, pt.dbZ,
 									dbAvZ, 
-									1, m_pReseau->GetTimeStep(), 0
-									, dbVitMax, DBL_MAX, m_dbLongueurCellAcoustique, "");
+									1, m_pReseau->GetTimeStep(),
+									dbVitMax, DBL_MAX, "");
 
 								sortieCAF->lstTBr.push_front(pT);
 
@@ -696,8 +694,8 @@ XERCES_CPP_NAMESPACE_USE
 									dbAmX, dbAmY,
 									dbAvX, dbAvY,
 									dbAmZ, dbAvZ,
-									1, m_pReseau->GetTimeStep(), 0,
-									dbVitMax, DBL_MAX, m_dbLongueurCellAcoustique, "");            
+									1, m_pReseau->GetTimeStep(),
+									dbVitMax, DBL_MAX, "");            
 
 				m_pReseau->GetLstTuyauxMicro()->push_back(pT);
 				m_pReseau->GetLstTuyaux()->push_back(pT);
@@ -2227,5 +2225,4 @@ void CarrefourAFeuxEx::serialize(Archive & ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(m_dbTagreg);
     ar & BOOST_SERIALIZATION_NVP(m_dbGamma);
     ar & BOOST_SERIALIZATION_NVP(m_dbMu);
-    ar & BOOST_SERIALIZATION_NVP(m_dbLongueurCellAcoustique);
 }

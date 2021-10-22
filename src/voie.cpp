@@ -350,31 +350,6 @@ bool Voie::IsPullBackInInFrontOfGuidedVehicleForbidden(SousTypeVehicule & sousTy
 }
 
 //================================================================
-      bool VoieMacro::InitSimulation
-//----------------------------------------------------------------
-// Fonction  : Initialisation d'une simulation
-// Version du: 19/11/2004
-// Historique: 19/11/2004 (C.Bécarie - Tinea)
-//             Création
-//================================================================
-(
-        bool			bCalculAcoustique,
-        bool            bSirane,
-		std::string     strTuyau
-)
-{
-        int     i;
-        bool    bOk = true;
-
-        for(i=0;i<m_nNbCell;i++)
-        {
-                bOk &= m_pLstSegment[i]->InitSimulation(bCalculAcoustique, bSirane, strTuyau);
-        }
-
-        return bOk;
-}
-
-//================================================================
       void VoieMacro::TrafficOutput
 //----------------------------------------------------------------
 // Fonction  : Ecriture des résulats du calcul du trafic le fichier
@@ -424,25 +399,6 @@ bool Voie::IsPullBackInInFrontOfGuidedVehicleForbidden(SousTypeVehicule & sousTy
 )
 {
     m_dbOffre = m_pLstSegment[0]->CalculOffreVar();
-}
-
-//================================================================
-        void VoieMacro::ComputeNoise
-//----------------------------------------------------------------
-// Fonction  : estimation du bruit
-// Version du: 19/11/2004
-// Historique: 19/11/2004 (C.Bécarie - Tinea)
-//             Création
-//================================================================
-(
-        Loi_emission*   Loi
-)
-{
-        for(int i=0;i<m_nNbCell;i++)
-        {
-            m_pLstSegment[i]->Calcul_emission_cellule(Loi, m_strRevetement);
-            m_pLstSegment[i]->EmissionOutput();
-        }
 }
 
 //================================================================
@@ -726,9 +682,6 @@ bool Voie::IsPullBackInInFrontOfGuidedVehicleForbidden(SousTypeVehicule & sousTy
 
     m_pPrevVoie = NULL;
 
-    m_pLstCellAcoustique = NULL;
-    m_nNbCellAcoustique = 0;	
-
     m_bChgtVoieObligatoire = false;
     m_bChgtVoieObligatoireEch = false;
 
@@ -755,35 +708,16 @@ bool Voie::IsPullBackInInFrontOfGuidedVehicleForbidden(SousTypeVehicule & sousTy
 
     m_dbNextInstSortie[std::string()] = 0;
 
-    m_pLstCellAcoustique = NULL;
-
     m_bChgtVoieObligatoire = false;  
     m_bChgtVoieObligatoireEch = false;
 
     m_dbNextInstSortie[std::string()] = 0;
 
     m_pPrevVoie = NULL;
-
-    m_nNbCellAcoustique = 0;
 	
     m_nNbVeh = 0;
     m_dbPosLastVeh = UNDEF_POSITION;
 }
-
-//================================================================
-    VoieMicro::~VoieMicro
-//----------------------------------------------------------------
-// Fonction  : Destructeur
-// Version du: 13/12/2006
-// Historique: 13/12/2006 (C.Bécarie - Tinea)
-//             Création
-//================================================================
-(
-)
-{
-    SupprimeCellAcoustique();
-}
-
 
 //================================================================
     bool VoieMicro::IsChgtVoieObligatoire
@@ -1018,7 +952,6 @@ bool Voie::IsPullBackInInFrontOfGuidedVehicleForbidden(SousTypeVehicule & sousTy
     double      dbInstSortie;
     boost::shared_ptr<Vehicule> pVehicule;
     double      dbVit;
-    bool        bGestionMicro;
     Repartiteur*    pRep;
     Entree*     pOrg;
     bool        bCreation = false;    
@@ -1044,21 +977,6 @@ bool Voie::IsPullBackInInFrontOfGuidedVehicleForbidden(SousTypeVehicule & sousTy
         // Calcul de la trajectoire du premier véhicule
         if (!( m_dbNbVehSASSortie > ZERO_DOUBLE))
         {
-            // Recherche du type de gestion de la connection
-            // Si répartiteur micro, les véhicules ne sont pas supprimés mais passent le répartiteur
-            bGestionMicro = false;
-            if (pTuyau->get_Type_aval() =='R')
-            {
-                pRep = (Repartiteur*)pTuyau->getConnectionAval();
-                if(pRep->IsMicro())
-                bGestionMicro = true;
-            }
-
-            // Le premier véhicule sort
-            if(!bGestionMicro)
-            {             
-            }
-
             // Calcul de l'instant de sortie du véhicule
             dbInstSortie =  dbNbVehSASSortieOld / (dbNbVehSASSortieOld - m_dbNbVehSASSortie) * GetPasTemps();
             m_dbInstSASSortieVide = dbInstSortie;
@@ -1067,12 +985,6 @@ bool Voie::IsPullBackInInFrontOfGuidedVehicleForbidden(SousTypeVehicule & sousTy
 
             // Calcul de la demande par rapport au nouveau véhicule leader
             ComputeDemand(dbInstant, dbInstSortie);
-
-            if(!bGestionMicro)
-            {
-                /*m_pVehLeader = NULL;
-                m_pVehLeader = m_pReseau->GetFirstVehicule(this);*/
-            }
 
             // Si répartiteur, il faudra relancer les calculs d'écoulement car la demande va changer
             GetReseau()->SetRelancerCalculRepartiteur();
@@ -1100,115 +1012,6 @@ bool Voie::IsPullBackInInFrontOfGuidedVehicleForbidden(SousTypeVehicule & sousTy
     dbNbVehSASEntreeOld = m_dbNbVehSASEntree;
     m_dbNbVehSASEntree += GetDebitEntree() * m_dbPasTemps;
 
-    // Création des véhicules
- /*   if ( m_dbNbVehSASEntree >= 1 || fabs(m_dbNbVehSASEntree-1)<ZERO_DOUBLE   )
-    {
-        double  dbVitMaxEntree;
-
-        // Recherche du type de gestion de la connection
-        // Si répartiteur micro, les véhicules ne sont pas supprimés mais passent le répartiteur
-        bGestionMicro = false;
-        if (pTuyau->get_Type_amont() =='R')
-        {
-            pRep = (Repartiteur*)pTuyau->getConnectionAmont();
-            if(pRep->IsMicro())
-                bGestionMicro = true;
-        }
-
-        // Si répartiteur en amont, il faut récupérer la vitesse de sortie de celui-ci (au début du pas de temps)
-        if (pTuyau->get_Type_amont() =='R')
-            dbVitMaxEntree = ((Repartiteur *)pTuyau->getConnectionAmont())->GetVitesseMaxSortie(0, 0, dbInstant);
-        else
-            dbVitMaxEntree = GetParent()->GetVitesseMax();        
-
-        // Calcul de l'instant de la création au cours du pas de temps
-        if( GetDebitEntree() )
-            dbInstCreation = (1-dbNbVehSASEntreeOld) / GetDebitEntree();
-        m_dbNbVehSASEntree = m_dbNbVehSASEntree-1;
-
-        if( fabs(m_dbNbVehSASEntree-1)<ZERO_DOUBLE)     // Pour éviter les erreurs d'arrondis
-            dbInstCreation = GetPasTemps();
-
-        m_dbInstSASEntreePlein = dbInstCreation;
-
-        // Calcul de l'offre par rapport à l'avant-dernier véhicule créé
-        ComputeOffer(dbInstCreation);
-
-        // Si répartiteur, il faut relancer les calculs d'écoulement car l'offre va changer
-        GetReseau()->SetRelancerCalculRepartiteur();
-
-       dbVitMaxEntree = min(dbVitMaxEntree, GetParent()->GetVitesseMax() );
-
-       if(!bGestionMicro)
-       {
-            m_pVehLast = m_pReseau->GetLastVehicule(this);
-
-            TypeVehicule* pTV = ((TuyauMicro*)GetParent())->CalculTypeNewVehicule(dbInstant, GetNum() );            
-
-            if(pTV)
-            {
-                dbVitMaxEntree = min( GetParent()->GetVitRegByTypeVeh(pTV, dbInstant), dbVitMaxEntree);
-
-                pVehicule = new Vehicule( m_pReseau->IncLastIdVeh(), dbVitMaxEntree, pTV, GetPasTemps() );
-                pVehicule->SetVoie(this);
-                pVehicule->SetTuyau((TuyauMicro*)GetParent());
-                pVehicule->SetInstantCreation(dbInstCreation);
-
-				// Agressivité
-				if(m_pReseau->IsProcAgressivite())
-					pVehicule->SetAgressif(pOrg->IsAgressif(pTV));
-
-				// Mise à jour de la liste des véhicules du doc XML				
-				System::String ^ssType = gcnew System::String(pVehicule->GetType()->GetLibelle());
-                System::String ^ssEntree = gcnew System::String(pOrg->getNom());
-
-                String ^ssVoieEntree;
-                if( m_pReseau->IsTraceRoute() )
-                    ssVoieEntree = gcnew System::String( GetLabel() );
-                else
-                 ssVoieEntree = gcnew System::String("");
-
-                m_pReseau->m_XmlDocTrafic->AddVehicule( pVehicule->GetID(), "", ssType, pVehicule->GetDiagFonda()->GetKMax(), pVehicule->GetDiagFonda()->GetVitesseLibre(), pVehicule->GetDiagFonda()->GetW(), ssEntree, dbInstant - GetPasTemps() + dbInstCreation, ssVoieEntree, pVehicule->IsAgressif() );
-
-				delete(ssType);				
-                delete(ssEntree);  
-                delete(ssVoieEntree);
-
-                // Ajout dans la liste des véhicules du réseau
-                m_pReseau->AddVehicule(pVehicule);
-
-                pOrg =  (Entree*)((TuyauMicro*)GetParent())->getConnectionAmont();
-                pVehicule->SetOrigine(pOrg);
-                pVehicule->SetHeureEntree( dbInstant );
-
-                // Calcule de sa destination si besoin
-                if( m_pReseau->IsUsedODMatrix() )
-                {                                        
-					pDst = pOrg->GetDestination(dbInstant, GetNum() );
-                    pVehicule->SetDestination(pDst);
-
-                    // Gestion des itinéraires ?
-                    if(m_pReseau->IsCptItineraire())
-                    {
-                        m_pReseau->CalculeItineraire(pOrg, pDst, pVehicule->GetItineraire(), pVehicule->GetType() );
-                    }
-                }
-             }
-
-            // Incrémentation du compteur pour les entrées
-            pTuyau = (TuyauMicro*)GetParent();
-            if( pTuyau->get_Type_amont() == 'E'  )              
-                ((Entree*)(pTuyau->getConnectionAmont()))->IncNbVehicule(dbInstant);
-
-            // Si premier véhicule créé sur la voie, il faut recalculer la demande et le SAS de la sortie associée
-            if(!m_pVehLeader)
-            {
-                ComputeDemand(dbInstant);
-                m_dbInstSASSortieVide = dbInstCreation;
-            }
-        }
-    }*/
-
 }
 
 //================================================================
@@ -1222,8 +1025,6 @@ bool Voie::IsPullBackInInFrontOfGuidedVehicleForbidden(SousTypeVehicule & sousTy
     double dbInstant
 )
 {
-    // MAJ des SAS
-
     // En aval
     if(m_dbInstSASSortieVide!=NONVAL_DOUBLE)
     {
@@ -1257,196 +1058,22 @@ bool Voie::IsPullBackInInFrontOfGuidedVehicleForbidden(SousTypeVehicule & sousTy
 }
 
 //================================================================
-      bool VoieMicro::Discretisation
-//----------------------------------------------------------------
-// Fonction  : Segmentation d'une voie en cellules
-// Remarques : dans le cas d'une voie micro, ce sont des cellules
-//              acoustiques
-// Version du: 13/10/20006
-// Historique: 13/10/20006 (C.Bécarie - Tinea)
-//             Création
-//================================================================
-(
-    int nNbVoie
-)
+void VoieMicro::UpdateNbVeh()
+// Fonction : Met à jour le nombre de véhicules présents sur la voie au début du pas de temps
 {
-    Segment*                pCell;
-    int                     i;
-    double                  dbX, dbY, dbZ;
-    double                  dbAbsAmont,dbAbsAval;
-    double                  dbOrdAmont,dbOrdAval;
-    double                  dbHautAmont,dbHautAval;
-    int                     nNbCell;
+    vector<boost::shared_ptr<Vehicule>>::iterator itVeh;		  
 
-    // ménage
-    SupprimeCellAcoustique();
+    m_nNbVeh = 0;
+    m_dbPosLastVeh = m_dbLongueur;
 
-	if( ((TuyauMicro*)GetParent())->GetNbCellAcoustique() == 0 && ((TuyauMicro*)GetParent())->GetAcousticCellLength()<=0 )
-		return false;
-
-    nNbCell = ((TuyauMicro*)GetParent())->GetNbCellAcoustique();
-
-    if(nNbCell==0)
-	{
-		nNbCell = (int)ceil(((TuyauMicro*)GetParent())->GetLength() / ((TuyauMicro*)GetParent())->GetAcousticCellLength());
-		((TuyauMicro*)GetParent())->SetNbCellAcoustique(nNbCell);		
-	}
-        
-
-    dbX = (GetAbsAval()-GetAbsAmont())/nNbCell;
-    dbY = (GetOrdAval()-GetOrdAmont())/nNbCell;
-    dbZ = (GetHautAval()-GetHautAmont())/nNbCell;
-
-    // création des listes
-    m_pLstCellAcoustique   = new Segment*[nNbCell];
-    m_nNbCellAcoustique = nNbCell;
-	m_nNbCell =  nNbCell;
-
-    for( i=0; i<nNbCell; i++)
-    {                                
-		std::string sTmp = m_strLabel + "C" + to_string(i);
-
-        dbAbsAmont= GetAbsAmont()+dbX*i;
-        dbAbsAval = GetAbsAmont()+dbX*(i+1);
-        dbOrdAmont= GetOrdAmont()+dbY*i;
-        dbOrdAval = GetOrdAmont()+dbY*(i+1);
-        dbHautAmont= GetHautAmont()+dbZ*i;
-        dbHautAval = GetHautAmont()+dbZ*(i+1);
-
-        pCell = new Segment(m_pReseau->IncLastIdSegment(), m_dbVitReg);
-        m_pLstCellAcoustique[i] = pCell;
-
-        m_pLstCellAcoustique[i]->SetPropCom(m_pReseau, this, sTmp, m_strRevetement);
-        m_pLstCellAcoustique[i]->SetExtAmont(dbAbsAmont, dbOrdAmont, dbHautAmont);
-        m_pLstCellAcoustique[i]->SetExtAval(dbAbsAval, dbOrdAval, dbHautAval);
-
-        m_pLstCellAcoustique[i]->CalculeLongueur(0);
-    }
-
-    return true;
-};
-
-//================================================================
-    void VoieMicro::SupprimeCellAcoustique
-//----------------------------------------------------------------
-// Fonction  : Suppression et destruction de la liste des cellules
-//             acoustqiues
-// Version du: 19/11/2004
-// Historique: 19/11/2004 (C.Bécarie - Tinea)
-//             Création
-//================================================================
-(
-)
-{
-    int i;
-
-    if(m_pLstCellAcoustique != NULL)
-    {
-        for( i=0; i< m_nNbCellAcoustique; i++)
+    for(itVeh = m_pReseau->m_LstVehicles.begin(); itVeh != m_pReseau->m_LstVehicles.end(); itVeh++)
+        if( (*itVeh)->GetVoie(0) == this )
         {
-            delete m_pLstCellAcoustique[i];
-            m_pLstCellAcoustique[i]=NULL;
+            m_nNbVeh++;
+            if( (*itVeh)->GetPos(0) < m_dbPosLastVeh )
+            m_dbPosLastVeh = (*itVeh)->GetPos(0);
         }
-        delete [] m_pLstCellAcoustique;
-        m_pLstCellAcoustique = NULL;
-    }
 }
-
-//================================================================
-    void VoieMicro::InitAcousticVariables
-//----------------------------------------------------------------
-// Fonction  : Initialisation des variables acoustiques à chaque
-//             pas de temps
-// Version du: 17/10/2006
-// Historique: 17/10/2006 (C.Bécarie - Tinea)
-//================================================================
-(
-)
-{
-    if(m_pLstCellAcoustique)
-        for(int i=0; i<m_nNbCell; i++)
-            m_pLstCellAcoustique[i]->InitAcousticVariables();
-}
-
-//================================================================
-        void VoieMicro::EmissionOutput
-//----------------------------------------------------------------
-// Fonction  : Sortie des émissions acoustiques
-// Version du: 23/10/2006
-// Historique: 23/10/2006 (C.Bécarie - Tinea)
-//             Création
-//================================================================
-(    
-)
-{
-    for(int i=0;i<m_nNbCell;i++)
-    {
-        m_pLstCellAcoustique[i]->EmissionOutput();
-    }
-}
-
-//================================================================
-      bool VoieMicro::InitSimulation
-//----------------------------------------------------------------
-// Fonction  : Initialisation d'une simulation
-// Version du: 19/11/2004
-// Historique: 19/11/2004 (C.Bécarie - Tinea)
-//             Création
-//================================================================
-(
-        bool			bCalculAcoustique,
-        bool            bSirane,
-		std::string     strTuyau
-)
-{
-    int     i;
-    bool    bOk = true;
-
-    if(m_pLstCellAcoustique)
-    {
-		for(i=0;i<m_nNbCellAcoustique;i++)
-        {
-                bOk &= m_pLstCellAcoustique[i]->InitSimulation(bCalculAcoustique, bSirane, strTuyau);
-        }
-    }
-
-    // Calcul du premier instant de sortie
-    Tuyau *pTAval;
-    SymuViaTripNode *pDest;
-    pTAval = (Tuyau*)GetParent();
-
-    if(pTAval->get_Type_aval() =='S' || pTAval->get_Type_aval() =='P')
-    {
-        pDest = m_pReseau->GetDestinationSymuViaTripNode(pTAval->getConnectionAval());
-
-        m_dbNextInstSortie[std::string()] = pDest->GetNextEnterInstant( pTAval->getNbVoiesDis(), 0, m_pReseau->GetTimeStep(), m_pReseau->GetTimeStep(), std::string() );
-    }
-
-    m_dbNbVehSASEntree = 0;
-    m_dbNbVehSASSortie = 1;
-
-    m_pVehLeader.reset(); 
-
-    return bOk;
-}
-
-
-	  // Met à jour le nombre de véhicules présents sur la voie au début du pas de temps
-	  void VoieMicro::UpdateNbVeh()
-	  {
-		  vector<boost::shared_ptr<Vehicule>>::iterator itVeh;		  
-
-		  m_nNbVeh = 0;
-		  m_dbPosLastVeh = m_dbLongueur;
-
-		  for(itVeh = m_pReseau->m_LstVehicles.begin(); itVeh != m_pReseau->m_LstVehicles.end(); itVeh++)
-			  if( (*itVeh)->GetVoie(0) == this )
-			  {
-				  m_nNbVeh++;
-				  if( (*itVeh)->GetPos(0) < m_dbPosLastVeh )
-					m_dbPosLastVeh = (*itVeh)->GetPos(0);
-			  }
-	  }
 
 double	VoieMicro::GetLongueurEx(TypeVehicule * pTV)
 {
@@ -1523,8 +1150,6 @@ template<class Archive>
 void VoieMicro::serialize(Archive& ar, const unsigned int version)
 {
     ar & BOOST_SERIALIZATION_BASE_OBJECT_NVP(Voie);
-
-    SerialiseTab<Archive, Segment*>(ar, "m_pLstCellAcoustique", m_pLstCellAcoustique, m_nNbCellAcoustique);
 
     ar & BOOST_SERIALIZATION_NVP(m_bChgtVoieObligatoire);
     ar & BOOST_SERIALIZATION_NVP(m_bChgtVoieObligatoireEch);

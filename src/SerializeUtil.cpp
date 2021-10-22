@@ -1,8 +1,6 @@
 #include "stdafx.h"
 #include "SerializeUtil.h"
 
-#include "Symubruit.h"
-
 #include "reseau.h"
 #include "entree.h"
 #include "ControleurDeFeux.h"
@@ -16,11 +14,9 @@
 #include "convergent.h"
 #include "voie.h"
 #include "frontiere.h"
-#include "XMLDocSirane.h"
 #include "XMLDocTrafic.h"
 #include "GMLDocTrafic.h"
 #include "TraceDocTrafic.h"
-#include "XMLDocAcoustique.h"
 #include "Parking.h"
 #include "ZoneDeTerminaison.h"
 #include "TronconOrigine.h"
@@ -266,9 +262,6 @@ void registerClasses(Archive & ar)
     ar.register_type(static_cast<TraceDocTrafic *>(NULL));
     boost::serialization::void_cast_register(static_cast<TraceDocTrafic *>(NULL),static_cast<DocTrafic *>(NULL));
 
-    ar.register_type(static_cast<XMLDocAcoustique *>(NULL));
-    boost::serialization::void_cast_register(static_cast<XMLDocAcoustique *>(NULL),static_cast<DocAcoustique *>(NULL));
-
     ar.register_type(static_cast<RegulationCapteur *>(NULL));
     boost::serialization::void_cast_register(static_cast<RegulationCapteur *>(NULL),static_cast<RegulationElement *>(NULL));
 
@@ -492,7 +485,7 @@ template void SerialiseDOMDocument(boost::archive::xml_wiarchive & ar, const cha
 template <class Archive>
 void SerialiseDOMDocument(Archive & ar, const char * nom, const XMLCh* rootName, XERCES_CPP_NAMESPACE::DOMDocument* &pDoc, XMLUtil * pXMLUtil)
 {
-    // instanciation éventuelle du document
+    // instanciation ï¿½ventuelle du document
     if(!pDoc)
     {
         pDoc = pXMLUtil->CreateXMLDocument(rootName);
@@ -510,12 +503,13 @@ namespace boost {
             string docStr;
             if(Archive::is_saving::value)
             {
-                // en cas de sauvegarde, on doit au préalable générer la string correspondant au document
+                // en cas de sauvegarde, on doit au prï¿½alable gï¿½nï¿½rer la string correspondant au document
                 docStr = xmlUtils.getOuterXml(doc.getDocumentElement());
             }
             ar & BOOST_SERIALIZATION_NVP(docStr);
             if(Archive::is_loading::value)
             {
+	            std::cout << "G2" << std::endl;
                 // en cas de chargement, on doit parser la string lue pour reconstituer le document
                 DOMDocument * pLoadedDoc = xmlUtils.LoadDocument(docStr);
                 doc.replaceChild(doc.importNode(pLoadedDoc->getDocumentElement(),true), doc.getDocumentElement());

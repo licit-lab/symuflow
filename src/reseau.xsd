@@ -707,35 +707,6 @@ Si ce code n'est pas défini (ainsi que le code des données d'entrée - attribu
         <xsd:documentation>Indique si la simulation du trafic doit avoir lieu</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute default="false" name="simulation_acoustique" type="xsd:boolean">
-      <xsd:annotation>
-        <xsd:documentation>Indique si la simulation des émissions acoustiques doit avoir lieu</xsd:documentation>
-      </xsd:annotation>
-    </xsd:attribute>
-    <xsd:attribute default="false" name="simulation_atmospherique" type="xsd:boolean">
-      <xsd:annotation>
-        <xsd:documentation>Indique si la simulation des émissions atmosphériques doit avoir lieu</xsd:documentation>
-      </xsd:annotation>
-    </xsd:attribute>
-    <xsd:attribute default="C" name="type_sortieacoustique">
-      <xsd:annotation>
-        <xsd:documentation>Type de sortie acoustique</xsd:documentation>
-      </xsd:annotation>
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:NMTOKEN">
-          <xsd:enumeration value="C">
-            <xsd:annotation>
-              <xsd:documentation>cellule acoustique</xsd:documentation>
-            </xsd:annotation>
-          </xsd:enumeration>
-          <xsd:enumeration value="P">
-            <xsd:annotation>
-              <xsd:documentation>ponctuel</xsd:documentation>
-            </xsd:annotation>
-          </xsd:enumeration>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
     <xsd:attribute default="estimee" name="loipoursuite" use="optional">
       <xsd:annotation>
         <xsd:documentation>Indique la loi de poursuite utilisée</xsd:documentation>
@@ -982,41 +953,6 @@ La valeur par défaut 0 signifie que le 'seed' est évalué par le logiciel.</xs
           </xsd:enumeration>
         </xsd:restriction>
       </xsd:simpleType>
-    </xsd:attribute>
-    <xsd:attribute default="0" name="nb_cell_acoustique" type="xsd:nonNegativeInteger">
-      <xsd:annotation>
-        <xsd:documentation>Nombre de cellule(s) acoustique(s) par défaut des éléments du réseau</xsd:documentation>
-      </xsd:annotation>
-    </xsd:attribute>
-    <xsd:attribute default="0" name="longueur_cell_acoustique" type="typeFloatPositif">
-      <xsd:annotation>
-        <xsd:documentation>Longueur (en mètre) désirée des cellules acoustiques par défaut des éléments du réseau. (pour chaque tronçon / tronçon interne, le nombre de cellules acoustiques sera calculée afin d'approcher au mieux la longueur de cellule désirée)</xsd:documentation>
-      </xsd:annotation>
-    </xsd:attribute>
-    <xsd:attribute default="false" name="simulation_sirane" type="xsd:boolean">
-      <xsd:annotation>
-        <xsd:documentation>Indique si le calcul des données nécessaires à Sirane (agrégation du temps passé par les véhicules dans chaque plage de vitesse) est demandé.</xsd:documentation>
-      </xsd:annotation>
-    </xsd:attribute>
-    <xsd:attribute default="3" name="nb_cell_sirane" type="xsd:positiveInteger">
-      <xsd:annotation>
-        <xsd:documentation>Nombre de cellules à créer par tronçon pour le calcul des données nécessaires à Sirane</xsd:documentation>
-      </xsd:annotation>
-    </xsd:attribute>
-    <xsd:attribute default="10" name="min_longueur_cell_sirane" type="typeFloatPositif">
-      <xsd:annotation>
-        <xsd:documentation>Longueur minimum (en mètres) d'une cellule pour le calcul des données nécessaires à Sirane</xsd:documentation>
-      </xsd:annotation>
-    </xsd:attribute>
-    <xsd:attribute default="300" name="periode_agregation_sirane" type="typeFloatStrictPositif">
-      <xsd:annotation>
-        <xsd:documentation>Période d'agrégation (en secondes) pour le calcul des données nécessaires à Sirane</xsd:documentation>
-      </xsd:annotation>
-    </xsd:attribute>
-    <xsd:attribute default="false" name="extension_barycentre_sirane" type="xsd:boolean">
-      <xsd:annotation>
-        <xsd:documentation>Indique si la géométrie indiquée en sortie pour les tronçons doit inclure les barycentres des briques amont et aval des tronçons. Si true, le parametre nb_cell_sirane est ignoré et les tronçons ne sont constitués que d'une seule cellule.</xsd:documentation>
-      </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute default="INF" name="zone_distance_terminaison_max" type="typeFloatStrictPositif">
       <xsd:annotation>
@@ -1602,32 +1538,6 @@ Si ce code n'est pas défini (ainsi que le code de restitution - attribut EPSGou
                 <xsd:attribute name="vit_sup" type="typeVitMax" use="required">
                   <xsd:annotation>
                     <xsd:documentation>Vitesse (en m/s) de la borne supérieure de validité de l'accélération</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:attribute>
-              </xsd:complexType>
-            </xsd:element>
-          </xsd:sequence>
-        </xsd:complexType>
-      </xsd:element>
-      <xsd:element minOccurs="0" maxOccurs="1" name="SOURCES_ACOUSTIQUES">
-        <xsd:annotation>
-          <xsd:documentation>Liste des sources acoustiques du véhicule</xsd:documentation>
-        </xsd:annotation>
-        <xsd:complexType>
-          <xsd:sequence>
-            <xsd:element minOccurs="1" maxOccurs="unbounded" name="SOURCE_ACOUSTIQUE">
-              <xsd:annotation>
-                <xsd:documentation>Description d'une source acoustique du type de véhicule parent</xsd:documentation>
-              </xsd:annotation>
-              <xsd:complexType>
-                <xsd:attribute default="0" name="position" type="xsd:float" use="optional">
-                  <xsd:annotation>
-                    <xsd:documentation>Position de la source acoustique du véhicule (l'origine est l'avant du véhicule)</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:attribute>
-                <xsd:attribute name="id_DB_LoiEmission" type="xsd:string" use="required">
-                  <xsd:annotation>
-                    <xsd:documentation>Identifiant base de donnée des lois d'émission de la source acoustique du type de véhicule</xsd:documentation>
                   </xsd:annotation>
                 </xsd:attribute>
               </xsd:complexType>

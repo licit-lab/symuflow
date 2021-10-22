@@ -55,7 +55,7 @@ void JSONDocTrafic::AddInstant(double dbInstant, double dbTimeStep, int nNbVeh)
     m_TrafState.AddMember("step", stepValue, allocator);
 }
 
-// Ajout d'une période de surveillance des capteurs
+// Ajout d'une pï¿½riode de surveillance des capteurs
 void JSONDocTrafic::AddPeriodeCapteur(double dbDeb, double dbFin, const std::string & nodeName) 
 {
 }
@@ -142,7 +142,7 @@ void JSONDocTrafic::SaveLastInstant()
 
 }
 
-// Suppression du dernier instant en mémoire DOM
+// Suppression du dernier instant en mï¿½moire DOM
 void JSONDocTrafic::RemoveLastInstant() 
 {
 
@@ -153,25 +153,25 @@ void JSONDocTrafic::Add(DocTrafic * docTraficSrc)
 {
 }
 
-// Ajout d'une description d'une cellule de discrétisation
+// Ajout d'une description d'une cellule de discrï¿½tisation
 void JSONDocTrafic::AddCellule(int nID, const std::string & strLibelle, const std::string & strTuyau, double dbXam, double dbYam, double dbZam, double dbXav, double dbYav, double dbZav) 
 {
 
 }
 
-// Ajout d'une description d'un tronçon (défini par l'utilisateur ou construit par Symubruit)
+// Ajout d'une description d'un tronï¿½on (dï¿½fini par l'utilisateur ou construit par Symubruit)
 void JSONDocTrafic::AddTroncon(const std::string & strLibelle, Point * pPtAm, Point * pPtAv, int nVoie, const std::string & ssBrique, std::deque<Point*> & lstPtInterne, double dbLong, std::vector<double> dbLarg, double dbStockMax, double dbStockInitial, Tuyau * pTuyau) 
 {
 
 }
 
-// Ajout d'une description d'une voie (défini par l'utilisateur ou construit par Symubruit)
+// Ajout d'une description d'une voie (dï¿½fini par l'utilisateur ou construit par Symubruit)
 void JSONDocTrafic::AddVoie(Point * pPtAm, Point * pPtAv, std::deque<Point*> & lstPtInterne, double dbLong) 
 {
 
 }
 
-// Ajout d'une description d'un capteur (de l'utilisateur ou créé par Symubruit)
+// Ajout d'une description d'un capteur (de l'utilisateur ou crï¿½ï¿½ par Symubruit)
 void JSONDocTrafic::AddDefCapteur(const std::string & sId, const std::string & sT, double dbPos, Point ptCoord) 
 {
 
@@ -195,7 +195,7 @@ void JSONDocTrafic::AddDefCapteurMFD(const std::string & sId, bool bIncludeStric
 
 }
 
-// Ajout d'une description d'une entrée
+// Ajout d'une description d'une entrï¿½e
 void JSONDocTrafic::AddDefEntree(const std::string & sId, Point ptCoord) 
 {
 
@@ -225,13 +225,13 @@ void JSONDocTrafic::AddDefCDF(ControleurDeFeux * pCDF)
 
 }
 
-// Ajout d'une description d'un arrêt de bus
+// Ajout d'une description d'un arrï¿½t de bus
 void JSONDocTrafic::AddArret(const std::string & strLibelle, int numVoie, char * strNomLigne) 
 {
 
 }
 
-// Ajout de la description d'un véhicule
+// Ajout de la description d'un vï¿½hicule
 void JSONDocTrafic::AddVehicule(int nID, const std::string & strLibelle, const std::string & strType, const std::string & strGMLType, double dbKx, double dbVx, double dbW, const std::string & strEntree, const std::string & strSortie, const std::string & strZoneEntree, const std::string & strZoneSortie, const std::string & strPlaqueEntree, const std::string & strRoute, double dbInstCreation, const std::string & sVoie, bool bAgressif, int iLane, const std::string & sLine, const std::vector<std::string> & initialPath, const std::deque<PlageAcceleration> & plagesAcc, const std::string & motifOrigine, const std::string & motifDestination, bool bAddToCreationNode)
 {
     rapidjson::Document::AllocatorType& allocator = m_TrafState.GetAllocator();
@@ -308,31 +308,31 @@ void JSONDocTrafic::AddVehicule(int nID, const std::string & strLibelle, const s
 }
 
 
-// ajout la description d'un véhicule sur sa création
+// ajout la description d'un vï¿½hicule sur sa crï¿½ation
 void JSONDocTrafic::AddVehiculeToCreationNode(int nID, const std::string & strLibelle, const std::string & strType, double dbKx, double dbVx, double dbW, const std::string & strEntree, const std::string & strSortie, const std::string & strRoute, double dbInstCreation, const std::string & sVoie, bool bAgressif) 
 {
     
 }
 
-// Ajout des sorties d'une brique de régulation
+// Ajout des sorties d'une brique de rï¿½gulation
 void JSONDocTrafic::AddSimuRegulation(DOMNode * pRestitutionNode)
 {
 
 }
 
-// Ajout de la description des données trafic d'une entrée
+// Ajout de la description des donnï¿½es trafic d'une entrï¿½e
 void JSONDocTrafic::AddSimuEntree(const std::string & sEntree, int nVeh) 
 {
 
 }
 
-// Ajout de la description des données trafic d'un parking
+// Ajout de la description des donnï¿½es trafic d'un parking
 void JSONDocTrafic::AddSimuParking(const std::string & sParking, int nStock, int nVehAttente)
 {
 
 }
 
-// Ajout de la description des données trafic d'un troncon de stationnement
+// Ajout de la description des donnï¿½es trafic d'un troncon de stationnement
 void JSONDocTrafic::AddSimuTronconStationnement(const std::string & sTroncon, double dbLongueur)
 {
 
@@ -343,7 +343,7 @@ void JSONDocTrafic::UpdateInstEntreeVehicule(int nID, double dbInstEntree)
 
 }
 
-// Mise à jour de l'instant de sortie du véhicule
+// Mise ï¿½ jour de l'instant de sortie du vï¿½hicule
 void JSONDocTrafic::UpdateInstSortieVehicule(int nID, double dbInstSortie, const std::string & sSortie, const std::string & sPlaqueSortie, double dstParcourue, const std::vector<Tuyau*> & itinerary, const std::map<std::string, std::string> & additionalAttributes)
 {
     rapidjson::Document::AllocatorType& allocator = m_TrafState.GetAllocator();
@@ -372,16 +372,16 @@ void JSONDocTrafic::UpdateInstSortieVehicule(int nID, double dbInstSortie, const
     }
 }
 
-// Suppression des véhicules mémorisées à partir d'un certain ID
+// Suppression des vï¿½hicules mï¿½morisï¿½es ï¿½ partir d'un certain ID
 void JSONDocTrafic::RemoveVehicules(int nFromID) 
 {
 
 }
 
-// Ajout de l'état des feux pour l'instant considéré
+// Ajout de l'ï¿½tat des feux pour l'instant considï¿½rï¿½
 void JSONDocTrafic::AddSimFeux(const std::string & sCtrlFeux, const std::string & sTE, const std::string & sTS, int bEtatFeu, int bPremierInstCycle, int bPrioritaire) 
 {
-	// Sortie commentée car inutilisée pour l'instant et très verbeux
+	// Sortie commentï¿½e car inutilisï¿½e pour l'instant et trï¿½s verbeux
     /*rapidjson::Document::AllocatorType& allocator = m_TrafState.GetAllocator();
 
     rapidjson::Value lightJson(rapidjson::kObjectType);
@@ -411,18 +411,12 @@ void JSONDocTrafic::AddSimFeux(const std::string & sCtrlFeux, const std::string 
     }*/
 }
 
-// Ajout de l'état des feux pour l'instant considéré pour EVE
-void JSONDocTrafic::AddSimFeuxEVE(const std::string & sCtrlFeux, const std::string & sTE, const std::string & sTS, int bEtatFeu, int bPremierInstCycle, int bPrioritaire) 
-{
-
-}
-
-// Ajout des données complète trafic d'une cellule de discrétisation pour l'instant considéré
+// Ajout des donnï¿½es complï¿½te trafic d'une cellule de discrï¿½tisation pour l'instant considï¿½rï¿½
 void JSONDocTrafic::AddCellSimu(int nID, double dbConc, double dbDebit, double dbVitAm, double dbAccAm, double dbNAm, double dbVitAv, double dbAccAv, double dbNAv, const std::string & strLibelle, const std::string & strTuyau, double dbXam, double dbYam, double dbZam, double dbXav, double dbYav, double dbZav) 
 {
 }
 
-// Ajout des données de la trajectoire d'un véhicule à l'instant considéré
+// Ajout des donnï¿½es de la trajectoire d'un vï¿½hicule ï¿½ l'instant considï¿½rï¿½
 void JSONDocTrafic::AddTrajectoire(int nID, Tuyau * pTuyau, const std::string & strTuyau, const std::string & strTuyauEx, const std::string & strNextTuyauEx, int nNumVoie, double dbAbs, double dbOrd, double dbZ, double dbAbsCur, double dbVit, double dbAcc, double dbDeltaN, const std::string & sTypeVehicule, double dbVitMax, double dbLongueur, const std::string & sLib, int nIDVehLeader, int nCurrentLoad, bool bTypeChgtVoie, TypeChgtVoie eTypeChgtVoie,
     bool bVoieCible, int nVoieCible, bool bPi, double dbPi, bool bPhi, double dbPhi, bool bRand, double dbRand, bool bDriven, const std::string & strDriveState, bool bDepassement, bool bRegimeFluide, const std::map<std::string, std::string> & additionalAttributes) 
 {
@@ -460,12 +454,12 @@ void JSONDocTrafic::AddTrajectoire(int nID, Tuyau * pTuyau, const std::string & 
     }
 }
 
-// Ajout des données du flux d'un véhicule à l'instant considéré
+// Ajout des donnï¿½es du flux d'un vï¿½hicule ï¿½ l'instant considï¿½rï¿½
 void JSONDocTrafic::AddStream(int nID, const std::string & strTuyau, const std::string & strTuyauEx )
 {	
 }
 
-// Ajout des données d'un tuyau à l'instant considéré
+// Ajout des donnï¿½es d'un tuyau ï¿½ l'instant considï¿½rï¿½
 void JSONDocTrafic::AddLink(const std::string &  strTuyau, double dbConcentration)
 {
 }

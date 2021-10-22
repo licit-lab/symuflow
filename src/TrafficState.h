@@ -61,7 +61,6 @@ namespace eveShared
     {
     public:
 		std::string id,id_eltamont,id_eltaval,resolution,revetement;
-        unsigned nb_cell_acoustique;
         unsigned nb_voie;
         std::vector<double> largeurs_voies;
         double extremite_amont[3];
@@ -87,42 +86,6 @@ namespace eveShared
         //! List of all troncons by id
 		std::map<std::string,Troncon*> troncons;
       
-    };
-
-    /*!
-    * \short Class to describe an Eve Troncon
-    */
-    class TRAFFICSTATE_DLL_DEF EveTroncon
-    {
-    public:
-		std::string id;
-
-        //! Relative to Symuvia troncon
-		std::string sym_troncon;
-        //! True if part of crossroads/roundabout
-        bool interne;
-
-        //! Symuvia lane
-        unsigned sym_voie;
-
-        double largeur;
-        double longueur;
-		std::vector<double*> polyline;
-
-		 //! List of level crossings
-		std::list<LevelCrossing*> LevelCrossings;
-    };
-
-    /*!
-    * \short Class Eve Network with Eve troncons from xml specific file
-    */
-    class TRAFFICSTATE_DLL_DEF EveNetwork
-    {
-    public:
-
-        //! List of all troncons by id
-		std::map<std::string,EveTroncon*> eveTroncons;
-
     };
 
     /*!

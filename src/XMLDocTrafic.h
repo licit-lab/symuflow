@@ -248,9 +248,6 @@ public:
 
     // Ajout de l'état des feux pour l'instant considéré
 	virtual void AddSimFeux(const std::string & sCtrlFeux, const std::string & sTE, const std::string & sTS, int bEtatFeu, int bPremierInstCycle, int bPrioritaire);
-
-    // Ajout de l'état des feux pour l'instant considéré pour EVE
-	virtual void AddSimFeuxEVE(const std::string & sCtrlFeux, const std::string & sTE, const std::string & sTS, int bEtatFeu, int bPremierInstCycle, int bPrioritaire);
   
     // Ajout des données complète trafic d'une cellule de discrétisation pour l'instant considéré
 	virtual void AddCellSimu(int nID, double dbConc, double dbDebit, double dbVitAm, double dbAccAm, double dbNAm, double dbVitAv, double dbAccAv, double dbNAv,

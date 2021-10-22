@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "TraceDocTrafic.h"
 
-#include "EVEDocTrafic.h"
 #include "XMLDocTrafic.h"
 #include "GMLDocTrafic.h"
 #include "JSONDocTrafic.h"
@@ -15,14 +14,13 @@
 
 TraceDocTrafic::TraceDocTrafic()
 {
-    m_pEveDocTrafic = NULL;
     m_pXMLDocTrafic = NULL;
     m_pGMLDocTrafic = NULL;
     m_pJSONDocTrafic = NULL;
 }
 
 TraceDocTrafic::TraceDocTrafic(Reseau * pNetwork, bool bEnableXMLDoc, bool bWriteXml, bool bDebug, bool bTraceStocks, bool bSortieLight, bool bSortieRegime, XERCES_CPP_NAMESPACE::DOMDocument * pXMLDocument,
-    bool bEVEOutput, bool bGMLOutput, bool JSONOutput)
+    bool bGMLOutput, bool JSONOutput)
 {
     if(JSONOutput)
     {
@@ -41,15 +39,6 @@ TraceDocTrafic::TraceDocTrafic(Reseau * pNetwork, bool bEnableXMLDoc, bool bWrit
     else
     {
         m_pGMLDocTrafic = NULL;
-    }
-    if(bEVEOutput)
-    {
-	    m_pEveDocTrafic = new EVEDocTrafic();
-        m_LstDocTrafic.push_back(m_pEveDocTrafic);
-    }
-    else
-    {
-        m_pEveDocTrafic = NULL;
     }
     if(bEnableXMLDoc)
     {
@@ -80,11 +69,6 @@ XMLDocTrafic * TraceDocTrafic::GetXMLDocTrafic()
 {
     return m_pXMLDocTrafic;
 }
-    
-EVEDocTrafic * TraceDocTrafic::GetEVEDocTrafic()
-{
-    return m_pEveDocTrafic;
-}
 
 GMLDocTrafic * TraceDocTrafic::GetGMLDocTrafic()
 {
@@ -107,8 +91,6 @@ void TraceDocTrafic::Init(const std::string & strFilename, const std::string & s
     m_strFileName = strFilename;
     if(m_pXMLDocTrafic)
 	    m_pXMLDocTrafic->Init(strFilename, strVer, dtDeb, dtFin, dbPerAgrCpts, xmlDocReseau, uiInit, simulationID, traficID, reseauID, pCoordTransf);
-	if (m_pEveDocTrafic)
-		m_pEveDocTrafic->Init();
     if (m_pGMLDocTrafic)
 		m_pGMLDocTrafic->Init(strFilename, dtDeb, dtFin, enveloppe, pOriginalDocTrafic != NULL, pOriginalDocTrafic==NULL?strFilename:pOriginalDocTrafic->GetFileName(), pOriginalDocTrafic?pOriginalDocTrafic->GetGMLDocTrafic():NULL, bHasAtLeastOneCDF, bHasSensor);
     if (m_pJSONDocTrafic)
@@ -509,12 +491,6 @@ void TraceDocTrafic::AddSimFeux(const std::string & sCtrlFeux, const std::string
 	    m_pJSONDocTrafic->AddSimFeux(sCtrlFeux, sTE, sTS, bEtatFeu, bPremierInstCycle, bPrioritaire);
 }
 
-void TraceDocTrafic::AddSimFeuxEVE(const std::string & sCtrlFeux, const std::string & sTE, const std::string & sTS, int bEtatFeu, int bPremierInstCycle, int bPrioritaire)
-{
-	if (m_pEveDocTrafic)
-		m_pEveDocTrafic->AddSimFeuxEVE(sCtrlFeux, sTE, sTS, bEtatFeu, bPremierInstCycle, bPrioritaire);
-}
-
 void TraceDocTrafic::AddCellSimu(int nID, double dbConc, double dbDebit, double dbVitAm, double dbAccAm, double bNAm, double dbVitAv, double dbAccAv, double dbNAv, const std::string & strLibelle, const std::string & strTuyau, double dbXam, double dbYam, double dbZam, double dbXav, double dbYav, double dbZav)
 {
     for(size_t iDoc = 0; iDoc < m_LstDocTrafic.size(); iDoc++)
@@ -548,18 +524,6 @@ void TraceDocTrafic::AddLink(const std::string &  strTuyau, double dbConcentrati
     }
 }
 
-eveShared::TrafficState * TraceDocTrafic::GetTrafficState()
-{
-	if (m_pEveDocTrafic == NULL)
-	{
-		return NULL;
-	}
-	else
-	{
-		return m_pEveDocTrafic->GetTrafficState();
-	}
-}
-
 const rapidjson::Document TraceDocTrafic::s_EMPTY_JSON_DOC(rapidjson::kNullType);
 const rapidjson::Document & TraceDocTrafic::GetTrafficStateJSON()
 {
@@ -584,7 +548,6 @@ void TraceDocTrafic::serialize(Archive & ar, const unsigned int version)
 {
     ar & BOOST_SERIALIZATION_BASE_OBJECT_NVP(DocTrafic);
 
-    ar & BOOST_SERIALIZATION_NVP(m_pEveDocTrafic);
     ar & BOOST_SERIALIZATION_NVP(m_pXMLDocTrafic);
     ar & BOOST_SERIALIZATION_NVP(m_pGMLDocTrafic);
     ar & BOOST_SERIALIZATION_NVP(m_LstDocTrafic);

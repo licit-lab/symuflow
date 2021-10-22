@@ -28,11 +28,11 @@ CTuyauMeso::CTuyauMeso()
 CTuyauMeso::CTuyauMeso( Reseau *pReseau, std::string _Nom,char _Type_amont ,char _Type_aval,ConnectionPonctuel *_p_aval,ConnectionPonctuel *_p_amont,
     char typevoie, std::string nom_rev, std::vector<double> larg_voie, double _Abscisse_amont,double _Ordonnee_amont,
     double _Abscisse_aval,double _Ordonnee_aval, double _Hauteur_amont, double _Hauteur_aval, int _Nb_voies,
-    double pastemps, int nNbCellAcoustique, double dbVitReg, double dbVitCat, double dbCellAcousLength, const std::string & strRoadLabel, ETuyauType resolution)
+    double pastemps, double dbVitReg, double dbVitCat, const std::string & strRoadLabel, ETuyauType resolution)
     :
 	TuyauMicro( pReseau, _Nom, _Type_amont ,_Type_aval,_p_aval,_p_amont, typevoie, nom_rev, larg_voie, _Abscisse_amont,_Ordonnee_amont,
         _Abscisse_aval,_Ordonnee_aval, _Hauteur_amont, _Hauteur_aval, _Nb_voies,
-        pastemps, nNbCellAcoustique, dbVitReg, dbVitCat, dbCellAcousLength, strRoadLabel)
+        pastemps, dbVitReg, dbVitCat, strRoadLabel)
 {
     m_dSupplyTime = -DBL_MAX;
 
@@ -41,8 +41,8 @@ CTuyauMeso::CTuyauMeso( Reseau *pReseau, std::string _Nom,char _Type_amont ,char
 
     m_nextArrival = std::pair<double, Vehicule*>(DBL_MAX, nullptr);
 
-    // Si le tuyau est créé en tant que tuyau meso, on le place dans la bonne résolution (plutôt que la résolution Micro positionnée
-    // dans le constructeur de la classe mère.
+    // Si le tuyau est crï¿½ï¿½ en tant que tuyau meso, on le place dans la bonne rï¿½solution (plutï¿½t que la rï¿½solution Micro positionnï¿½e
+    // dans le constructeur de la classe mï¿½re.
     if(resolution == TT_MESO)
     {
         m_nResolution = RESOTUYAU_MESO;
@@ -108,7 +108,7 @@ void CTuyauMeso::ComputeMeanK()
 void CTuyauMeso::AddCurrentVehicule( Vehicule * pVehicule)
 { 
     m_currentVehicules.push_back(pVehicule);
-    pVehicule->SetPos(0.0); // init position pour l'écriture
+    pVehicule->SetPos(0.0); // init position pour l'ï¿½criture
 }
 
 
@@ -138,8 +138,8 @@ void CTuyauMeso::AddArrival(double dArrivalTime, Vehicule *pVehicule, bool bEnsu
     {
         dRealArrivalTime = std::max<double>(dRealArrivalTime, GetMaxArrivalTime());
     }
-    // rmq. on note ici le temps prévu pour la sortie (sera écrasé lors de la sortie réelle),
-    // utilisé pour la conversion du troncon meso en troncon micro pour positionner le véhicule dessus
+    // rmq. on note ici le temps prï¿½vu pour la sortie (sera ï¿½crasï¿½ lors de la sortie rï¿½elle),
+    // utilisï¿½ pour la conversion du troncon meso en troncon micro pour positionner le vï¿½hicule dessus
     pVehicule->SetTimeCode(this, Vehicule::TC_OUTGOING, dRealArrivalTime);
 
     m_arrivals.push_back(std::pair<double, Vehicule*>(dRealArrivalTime, pVehicule));
@@ -328,8 +328,8 @@ void CTuyauMeso::ToMicro()
 {
     m_nResolution = RESOTUYAU_MICRO;
 
-    // map des positions du dernier véhicule replacé sur chaque voie afin de respecter un espacement suffisant entre
-    // ceux-ci (dépendant de kmean)
+    // map des positions du dernier vï¿½hicule replacï¿½ sur chaque voie afin de respecter un espacement suffisant entre
+    // ceux-ci (dï¿½pendant de kmean)
     std::map<int, double> lastPosOnLane;
 
     std::list< std::pair< double, Vehicule*> >::const_iterator it;
@@ -338,15 +338,15 @@ void CTuyauMeso::ToMicro()
         const std::pair<double, Vehicule*> & vehicle = *it;
 
         double dbIncomingTime = vehicle.second->GetTimeCode(this, Vehicule::TC_INCOMMING);
-        double dbArrivalTime = vehicle.first;//vehicle.second->GetTimeCode(this, Vehicule::TC_OUTGOING); // rmq. : le TC_OUTGOING n'est pas réactualisé en fonction des feux rouges, etc...
+        double dbArrivalTime = vehicle.first;//vehicle.second->GetTimeCode(this, Vehicule::TC_OUTGOING); // rmq. : le TC_OUTGOING n'est pas rï¿½actualisï¿½ en fonction des feux rouges, etc...
 
-        // Position calculée au prorata de la durée écoulée par rapport à la durée de traversée prévue du tuyau
+        // Position calculï¿½e au prorata de la durï¿½e ï¿½coulï¿½e par rapport ï¿½ la durï¿½e de traversï¿½e prï¿½vue du tuyau
         double dbPosInLink;
         if(dbArrivalTime != dbIncomingTime)
         {
-            // rmq. : il peut arriver que m_pReseau->m_dbInstSimu soit supérieur à l'instant d'arrivée des véhicules. Dans ce cas,
-            // dbPosInLink est supérieur à la longueur de tronçon, et si c'est le cas de plusieurs véhicules (reproductible facilement avec un feu rouge par exemple),
-            // ces véhicules sont tous créés à la même position (à la fin du tronçon). A améliorer si gênant.
+            // rmq. : il peut arriver que m_pReseau->m_dbInstSimu soit supï¿½rieur ï¿½ l'instant d'arrivï¿½e des vï¿½hicules. Dans ce cas,
+            // dbPosInLink est supï¿½rieur ï¿½ la longueur de tronï¿½on, et si c'est le cas de plusieurs vï¿½hicules (reproductible facilement avec un feu rouge par exemple),
+            // ces vï¿½hicules sont tous crï¿½ï¿½s ï¿½ la mï¿½me position (ï¿½ la fin du tronï¿½on). A amï¿½liorer si gï¿½nant.
             dbPosInLink = (m_pReseau->m_dbInstSimu - dbIncomingTime) / (dbArrivalTime - dbIncomingTime) * GetLength();
         }
         else
@@ -355,7 +355,7 @@ void CTuyauMeso::ToMicro()
             dbPosInLink = 0;
 
             m_pReseau->log() << Logger::Warning << std::endl << "WARNING : the arrival time of vehicle " << vehicle.second->GetID() << " is equal to its incoming time ..." << std::endl;
-            m_pReseau->log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
+            m_pReseau->log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir ï¿½ reprendre tous les appels aux log en prï¿½cisant que c'est des INFO. ï¿½ supprimer si on reprend tous les appels au log.
         }
 
         dbPosInLink = std::max<double>(0, std::min<double>(GetLength() - 0.00001, dbPosInLink));
@@ -376,13 +376,13 @@ void CTuyauMeso::ToMicro()
         }
         else
         {
-            // division par zero si on applique la formule ci-dessus.. on prend la vitesse max du véhicule...
+            // division par zero si on applique la formule ci-dessus.. on prend la vitesse max du vï¿½hicule...
             vehicle.second->SetVit(vehicle.second->GetVitMax());
         }
         
         vehicle.second->SetTuyauMeso(NULL, m_pReseau->m_dbInstSimu);
 
-        // gestion des capteurs pour la partie meso du tronçon déjà parcourue
+        // gestion des capteurs pour la partie meso du tronï¿½on dï¿½jï¿½ parcourue
         if(m_pReseau->GetGestionsCapteur())
         {
             m_pReseau->GetGestionsCapteur()->AddMesoVehicle(m_pReseau->m_dbInstSimu, vehicle.second, this, NULL, dbPosInLink);
@@ -411,8 +411,8 @@ void CTuyauMeso::ToMeso()
 {
     m_nResolution = RESOTUYAU_MESO;
 
-    // rmq. : On ne fait rien ici pour les véhicules micro qui sont sut le tronçon. Il y a donc une approximation ici
-    // puisque ces véhicules ne seront pas pris en compte par le modèle méso de ce tuyau alors qu'ils vont y passer encore
+    // rmq. : On ne fait rien ici pour les vï¿½hicules micro qui sont sut le tronï¿½on. Il y a donc une approximation ici
+    // puisque ces vï¿½hicules ne seront pas pris en compte par le modï¿½le mï¿½so de ce tuyau alors qu'ils vont y passer encore
     // un peu de temps...
 
     GetCnxAssAv()->ToMeso(this);
@@ -423,7 +423,7 @@ void CTuyauMeso::ToMeso()
         GetCnxAssAm()->ToMeso(NULL);
     }
 
-    // même si le tuyau est micro, on peut mettre des choses là-dedans (voir par ex. le adddownstreampassingtime),
+    // mï¿½me si le tuyau est micro, on peut mettre des choses lï¿½-dedans (voir par ex. le adddownstreampassingtime),
     // du coup on nettoie lorsqu'on repasse en meso, sinon on observe des blocages (
     m_upstreamPassingTimes.clear();
     m_downstreamPassingTimes.clear();

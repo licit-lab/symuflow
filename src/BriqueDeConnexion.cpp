@@ -3,7 +3,6 @@
 
 #include "reseau.h"
 #include "convergent.h"
-#include "XMLDocSirane.h"
 #include "Segment.h"
 #include "vehicule.h"
 #include "SystemUtil.h"
@@ -32,7 +31,6 @@
 (
 ):Connexion()
 {
-    m_pCellSirane = NULL;
     m_bSimulationTraversees = true;
 }
 
@@ -55,18 +53,11 @@
 
     m_pCtrlDeFeux = NULL;
 
-    m_pCellSirane = NULL;
-
     m_bSimulationTraversees = bTraversees;
 }
 
 BriqueDeConnexion::~BriqueDeConnexion()
 {
-    if(m_pCellSirane != NULL)
-    {
-        delete m_pCellSirane;
-    }
-
 #ifdef USE_SYMUCORE
 	std::map<std::pair<Tuyau*, Tuyau*>, SymuCore::RobustTravelIndicatorsHelper* >::const_iterator iterRobustTTHelper;
 	for (iterRobustTTHelper = m_mapRobustTravelTimesHelper.begin(); iterRobustTTHelper != m_mapRobustTravelTimesHelper.end(); iterRobustTTHelper++)
@@ -167,35 +158,6 @@ BriqueDeConnexion::~BriqueDeConnexion()
     }
     return 1 / pTV->GetDebitMax();   // Valeur par défaut
 }
-
-//================================================================
-    void  BriqueDeConnexion::InitSimulationSirane
-//----------------------------------------------------------------
-// Fonction  : Initialise la brique de donnexion en tant que
-// cellule pour le calcul des données nécessaires à Sirane
-// Version du: 10/04/2012
-// Historique: 10/04/2012 (O.Tonck - IPSIS)
-//             Création
-//================================================================
-(
-)
-{
-    // instanciation de la cellule associée à la brique de connexion
-    if(m_pCellSirane != NULL)
-    {
-        delete m_pCellSirane;
-    }
-    m_pCellSirane = new Segment();
-    m_pCellSirane->SetReseau(m_pReseau);
-    m_pCellSirane->SetLabel(GetID());
-
-    // calcul de l'isobarycentre de la brique
-    std::vector<Point*> lstPts;
-    lstPts.push_back(CalculBarycentre());
-    m_pReseau->m_XmlDocSirane->AddCellule(m_pCellSirane->GetLabel(), CELL_NOEUD, lstPts, UNDEFINED_PHASE);
-    delete lstPts[0];
-}
-
 
 //================================================================
     Point*  BriqueDeConnexion::CalculBarycentre
@@ -413,7 +375,6 @@ void BriqueDeConnexion::CalculTempsParcours(double dbInstFinPeriode, SymuCore::M
 					pRobustTravelSpeedsHelper = iterRobustTSHelper->second;
 				}
 
-				//if (!bPollutantEmissionComputation && !pRobustTravelTimesHelper && !bMouvementInterdit)
 				if(!pRobustTravelTimesHelper && !bMouvementInterdit)
 				{
 					double Tmin, Tmax, maxSpatialVehNumber, Vmax;
@@ -432,7 +393,7 @@ void BriqueDeConnexion::CalculTempsParcours(double dbInstFinPeriode, SymuCore::M
 				//std::cout << "AddTravelIndicatorsData Link: ;" << this->GetID();
 				if (!bMouvementInterdit)
 				{
-					if (/*!bPollutantEmissionComputation &&*/ !pRobustTravelTimesHelper->IsPreComputed())
+					if (!pRobustTravelTimesHelper->IsPreComputed())
 					{
 						pRobustTravelTimesHelper->AddTravelIndicatorsData(dbMeanVehicleNbForMacroType, dbTotalTravelledTime, dbTotalTravelledDistance);
 						pRobustTravelSpeedsHelper->AddTravelIndicatorsData(dbMeanVehicleNbForMacroType, dbTotalTravelledTime, dbTotalTravelledDistance);
@@ -447,16 +408,8 @@ void BriqueDeConnexion::CalculTempsParcours(double dbInstFinPeriode, SymuCore::M
 						}
 					}
 
-					//TTForMacroType = pRobustTravelTimesHelper->GetRobustTravelIndicator(dbMeanVehicleNbForMacroType, dbTotalTravelledDistance);
-
-					//if(!bPollutantEmissionComputation)
 					TTForMacroType = pRobustTravelTimesHelper->GetRobustTravelIndicator(dbMeanVehicleNbForMacroType, dbTotalTravelledDistance, false);
-					//TTForMacroType = pRobustTravelSpeedsHelper->GetRobustTravelIndicator(dbMeanVehicleNbForMacroType, dbTotalTravelledDistance, false);
-
 					TEForAllMacroTypes = pRobustTravelTimesHelper->GetRobustTravelIndicator(dbMeanVehicleNbForMacroType, dbTotalTravelledDistance, true);
-					//TEForAllMacroTypes = pRobustTravelSpeedsHelper->GetRobustTravelIndicator(dbMeanVehicleNbForMacroType, dbTotalTravelledDistance, true);
-
-
 				}
 				else
 					TTForMacroType = std::numeric_limits<double>::infinity();
@@ -659,7 +612,6 @@ void BriqueDeConnexion::serialize(Archive & ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(m_LstTfTra);
     ar & BOOST_SERIALIZATION_NVP(m_LstTfCvg);
     ar & BOOST_SERIALIZATION_NVP(m_LstPtsConflitTraversee);
-    ar & BOOST_SERIALIZATION_NVP(m_pCellSirane);
     ar & BOOST_SERIALIZATION_NVP(m_mapVeh);
     ar & BOOST_SERIALIZATION_NVP(m_LstCoutsMesures);
 }

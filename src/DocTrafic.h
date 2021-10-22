@@ -169,9 +169,6 @@ class DocTrafic
     // Ajout de l'�tat des feux pour l'instant consid�r�
     virtual void AddSimFeux(const std::string &  sCtrlFeux, const std::string &  sTE, const std::string &  sTS, int bEtatFeu, int bPremierInstCycle, int bPrioritaire) = 0;
 
-    // Ajout de l'�tat des feux pour l'instant consid�r� pour EVE
-    virtual void AddSimFeuxEVE(const std::string &  sCtrlFeux, const std::string &  sTE, const std::string &  sTS, int bEtatFeu, int bPremierInstCycle, int bPrioritaire) = 0;
-
     // Ajout des donn�es compl�te trafic d'une cellule de discr�tisation pour l'instant consid�r�
     virtual void AddCellSimu(int nID, double dbConc, double dbDebit, double dbVitAm, double dbAccAm, double bNAm, double dbVitAv, double dbAccAv, double dbNAv, const std::string &  strLibelle, const std::string &  strTuyau, double dbXam, double dbYam, double dbZam, double dbXav, double dbYav, double dbZav) = 0;
     

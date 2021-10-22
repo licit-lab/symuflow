@@ -2,9 +2,7 @@
 #ifndef SegmentNewH
 #define SegmentNewH
 
-#include "loi_emission.h"
 #include "troncon.h"
-#include "XMLDocSirane.h"
 
 class SegmentMacro;
 class Frontiere;
@@ -16,14 +14,14 @@ class CDiagrammeFondamental;
 struct Voisin
 {
     SegmentMacro    *pSegment;       // Pointeur sur le segment voisin
-    double          dbDebit;        // Débit injecté par le segment courant vers le segment voisin
-    double          dbDebitEqui;    // Débit injecté par le segment courant vers le segment voisin lors d'unaclaul de débit par phase (traversée de DM)
+    double          dbDebit;        // Dï¿½bit injectï¿½ par le segment courant vers le segment voisin
+    double          dbDebitEqui;    // Dï¿½bit injectï¿½ par le segment courant vers le segment voisin lors d'unaclaul de dï¿½bit par phase (traversï¿½e de DM)
     double          dbDemande;      // Demande du segment courant
-    double          dbDebitInjecteCumule; // Débit injecté cumulé (utile pour le calcul de la vitesse pour le processus déterministe)
-    double          dbDebitAnt;     // Débit injecté au cours du pas de temps précédent
+    double          dbDebitInjecteCumule; // Dï¿½bit injectï¿½ cumulï¿½ (utile pour le calcul de la vitesse pour le processus dï¿½terministe)
+    double          dbDebitAnt;     // Dï¿½bit injectï¿½ au cours du pas de temps prï¿½cï¿½dent
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 	friend class boost::serialization::access;
@@ -39,46 +37,22 @@ class Segment : public Troncon
 public:
       Segment();
       Segment(int   nID, double dbVitReg);
-      ~Segment();
 
-        // Variables relatives au calcul des émissions acoustiques du segment        
-        double* Lw_cellule;     // tableau contenant le niveau de puissance acoustique de la cellule en global et pour les 8 octaves
-        double* W_cellule;      // tableau contenant la puissance acoustique de la cellule en global et pour les 8 octaves
-
-        std::map<TypeVehicule*, std::vector<double> > m_LstCumulsSirane;  // liste des durées pour chaque type de véhicule et chaque plage de vitesse
-
-        int     m_nID;          // Identifiant unique du segment pour tout le réseau        
+        int     m_nID;          // Identifiant unique du segment pour tout le rï¿½seau        
 public:
-        // Fonctions de calcul des émissions acoustiques
-        virtual void Calcul_emission_cellule(Loi_emission*, char*){};   // Calcul de l'émission acoustique d'une cellule (p sur la l'objet loi d'émission, p sur l'objet rapport de boîte, type de revêtement du tronçon)
-        virtual void Calcul_emission_vehicule(Loi_emission*, char*){};  // Calcul de l'émission acoustique (puissance) d'un véhicule de la cellule (p sur la l'objet loi d'émission, p sur l'objet rapport de boîte, type de revêtement du tronçon)
-
-        void EmissionOutput(); // Fonction de restitutions des emissions dans les fichiers texte et dans les matrices pour le fichier .mat
-
-		virtual bool    InitSimulation(bool bAcou, bool bSirane, std::string strName);
-        virtual void    InitSimulationSirane(ePhaseCelluleSirane iPhase);
         virtual void    ComputeTraffic(double dbInstant){};
         virtual void    ComputeTrafficEx(double dbInstant){};
         virtual void    TrafficOutput(){};
-        virtual void    InitAcousticVariables();
-
-        void            AddPuissanceAcoustique(double* dbPuissAcoustique);
 
         int             GetID(){return m_nID;};
-
-        // Gestion des cellules pour Sirane
-        virtual void    AddSpeedContribution(TypeVehicule * pTypeVeh, double dbVitStart, double dbVitEnd, double dbPasDeTemps);
-        virtual void    SortieSirane();
-        virtual void    InitVariablesSirane();
 
 protected:
         virtual void    GetSpeedBounds(int nPlage, double& dbVitMin, double& dbVitMax);
         virtual int     GetSpeedRange(double dbVit);
-        virtual void    AddSpeedContribution(TypeVehicule * pType, int nPlage, double  dbDuree);
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 	friend class boost::serialization::access;
@@ -90,14 +64,14 @@ private:
 //                          classe SegmentMacro                              //
 //***************************************************************************//
 
-// La classe segment correpond aux élements resultant du processus de discrétisation
-// des tronçons macroscopiques. Les segments contiennent toutes les informations trafic simulés dynamiquement
-// par le modèle de trafic.
+// La classe segment correpond aux ï¿½lements resultant du processus de discrï¿½tisation
+// des tronï¿½ons macroscopiques. Les segments contiennent toutes les informations trafic simulï¿½s dynamiquement
+// par le modï¿½le de trafic.
 
 class SegmentMacro : public Segment
 {
 private:
-        // Variables caractéristiques des segments
+        // Variables caractï¿½ristiques des segments
         int     Nb_Voies;                   // Nb de voies
 
 
@@ -109,21 +83,21 @@ protected :
         SegmentMacro *cell_aval; // pointeur vers segment aval au segment actuel
         SegmentMacro *cell_amont; // pointeur vers segment amont au segment actuel
 
-        Frontiere   *m_pFrontiereAmont;  // Pointeur sur la frontière amont
-        Frontiere   *m_pFrontiereAval;   // Pointeur sur la frontière aval
+        Frontiere   *m_pFrontiereAmont;  // Pointeur sur la frontiï¿½re amont
+        Frontiere   *m_pFrontiereAval;   // Pointeur sur la frontiï¿½re aval
 
         double  m_dbConc;           // Concentration dans le segment
-        double  m_dbDebit;          // Débit dans le segment (TEMPORAIRE ???)
+        double  m_dbDebit;          // Dï¿½bit dans le segment (TEMPORAIRE ???)
 
         // Gestion du voisinage
         std::deque<Voisin>   m_LstVoisinsAmont;      // Liste des voisins amont
         std::deque<Voisin>   m_LstVoisinsAval;       // Liste des voisins aval
 
 public:
-        // Constructeurs, destructeurs et associés
+        // Constructeurs, destructeurs et associï¿½s
         ~SegmentMacro(void) ;
 		SegmentMacro(std::string sLabel, double _pasespace, double _pastemps, int _nbVoies, Frontiere *pFAmont, Frontiere *pFAval, int &nLastID, double dbVitReg);
-                // (Nom du segment, Pasespace, pastemps, NbVoies, type diagramme fluide (PL), type diagramme congestionné)
+                // (Nom du segment, Pasespace, pastemps, NbVoies, type diagramme fluide (PL), type diagramme congestionnï¿½)
         SegmentMacro(void);
 
         void InitVarSimu();
@@ -192,16 +166,11 @@ public:
         Frontiere*  GetFrontiereAval(){return m_pFrontiereAval;};
 
         double      CalculDemandeVar();
-        double      CalculOffreVar();
-
-        virtual void Calcul_emission_cellule(Loi_emission*, std::string); // Calcul de l'émission acoustique d'une cellule (p sur la l'objet loi d'émission, p sur l'objet rapport de boîte, type de revêtement du tronçon)
-        virtual void Calcul_emission_vehicule(Loi_emission*, std::string); // Calcul de l'émission acoustique (puissance) d'un véhicule de la cellule (p sur la l'objet loi d'émission, p sur l'objet rapport de boîte, type de revêtement du tronçon)
-
-        void EmissionOutput(); // Fonction de restitutions des emissions dans les fichiers texte et dans les matrices pour le fichier .mat        
+        double      CalculOffreVar();      
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 

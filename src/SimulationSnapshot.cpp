@@ -114,7 +114,7 @@ void SimulationSnapshot::SwitchToTempFiles(Reseau * pReseau, size_t snapshotIdx)
             ssFile += "_trafTMP" + pReseau->GetSuffixOutputFiles() + "_" + SystemUtil::ToString(snapshotIdx) + ".xml";
         }
         m_XmlDocTraficTmp = new TraceDocTrafic(pReseau, bEnableXML, pReseau->IsXmlOutput(), pReseau->IsDebug(), pReseau->IsTraceStocks(), pReseau->IsSortieLight(), pReseau->IsSortieRegime(), bEnableXML ? pReseau->GetXMLUtil()->CreateXMLDocument(XS("OUT")) : NULL,
-            pReseau->GetSymMode() == Reseau::SYM_MODE_STEP_EVE, pReseau->IsGMLOutput(), pReseau->GetSymMode() == Reseau::SYM_MODE_STEP_JSON);
+            pReseau->IsGMLOutput(), pReseau->GetSymMode() == Reseau::SYM_MODE_STEP_JSON);
 
         SDateTime dtDeb;
         if (pReseau->GetDateSimulation().GetYear() != 0)

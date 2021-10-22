@@ -3,7 +3,6 @@
 
 #include "frontiere.h"
 #include "reseau.h"
-#include "DocAcoustique.h"
 #include "voie.h"
 #include "tuyau.h"
 #include "SystemUtil.h"
@@ -23,20 +22,12 @@ const double SegmentMacro::EPSILON_01 = 1.0E-3;
 //----------------------------------------------------------------
 // Fonction  : Constructeur
 // Version du: 23/10/2006
-// Historique: 23/10/2006 (C.Bécarie - Tinea)
+// Historique: 23/10/2006 (C.Bï¿½carie - Tinea)
 //             Reprise
 //================================================================
 (
 )
 {
-    // remarque : on initialise ces tableaux dans tous les cas 
-    // pour ne pas avoir de pointeur null qui fait planter la serialisation
-    // remarque 2 : un peu nul point de vue conso mémoire sur des grands réseaux ? à reprendre ?
-    Lw_cellule      = new double[Loi_emission::Nb_Octaves+1];
-
-    W_cellule       = new double[Loi_emission::Nb_Octaves+1];
-
-    InitAcousticVariables();
 }
 
 //================================================================
@@ -44,7 +35,7 @@ const double SegmentMacro::EPSILON_01 = 1.0E-3;
 //----------------------------------------------------------------
 // Fonction  : Constructeur
 // Version du: 13/11/2006
-// Historique: 13/11/2006 (C.Bécarie - Tinea)
+// Historique: 13/11/2006 (C.Bï¿½carie - Tinea)
 //             Ajout de la gestion d'un ID des segments
 //================================================================
 (
@@ -53,135 +44,10 @@ const double SegmentMacro::EPSILON_01 = 1.0E-3;
     ):Troncon(dbVitReg,DBL_MAX,"")
 {
     m_nID = nID;
-
-    Lw_cellule      = new double[Loi_emission::Nb_Octaves+1];
-    
-    W_cellule       = new double[Loi_emission::Nb_Octaves+1];
-
-    InitAcousticVariables();
 }
-
-//================================================================
-    Segment::~Segment
-//----------------------------------------------------------------
-// Fonction  : Destructeur
-// Version du: 23/10/2006
-// Historique: 23/10/2006 (C.Bécarie - Tinea)
-//             Reprise
-//================================================================
-(
-)
-{
-    delete [] Lw_cellule;
-    Lw_cellule = NULL;
-
-    delete [] W_cellule;
-    W_cellule = NULL;
-}
-
-//================================================================
-    void Segment::EmissionOutput
-//----------------------------------------------------------------
-// Fonction  : Sortie des calculs acoustique
-// Version du: 12/10/2006
-// Historique: 12/10/2006 (C.Bécarie - Tinea)
-//             Création
-//================================================================
-(        
-)
-{
-    for(int i=0; i<=Loi_emission::Nb_Octaves; i++)
-    {
-        // Le calcul s'est effectué en puissance, on le transforme en niveau de puissance
-        if(W_cellule)
-        {
-            if( W_cellule[i] > 0)
-            {
-                Lw_cellule[i] = 10 * log10 (W_cellule[i] / pow((double)10, (double)-12) );
-            }
-            else
-                Lw_cellule[i] = 0;
-        }
-    }    
-
-	double *dbTest;
-    bool bOK =  false;
-
-	dbTest = new double[Loi_emission::Nb_Octaves+1];
-    for(int i=0; i<=Loi_emission::Nb_Octaves; i++)
-    {
-        dbTest[i] = Lw_cellule[i];
-        if(Lw_cellule[i]>0.000001)
-            bOK = true;
-    }
-    if(bOK)
-    {
-		switch(m_pReseau->GetSymMode())
-		{
-		case Reseau::SYM_MODE_FULL:
-			if(m_pReseau->IsXmlOutput())
-				m_pReseau->m_XmlDocAcoustique->AddCellSimu( m_nID, dbTest);
-			break;
-		case Reseau::SYM_MODE_STEP_EVE:
-        case Reseau::SYM_MODE_STEP_JSON:
-		case Reseau::SYM_MODE_STEP_XML:
-			std::string sTuyau = GetReseau()->GetLibelleTronconEve( (Tuyau*)GetParent()->GetParent(), ((VoieMicro*)GetParent())->GetNum() );
-			m_pReseau->m_XmlDocAcoustique->AddCellSimuEx( m_nID, dbTest, sTuyau, GetAbsAmont(), GetOrdAmont(), GetHautAmont(), GetAbsAval(), GetOrdAval(), GetHautAval() );
-			break;
-		}
-    }
-
-	delete [] dbTest;
-}
-
-//================================================================
-    void Segment::InitAcousticVariables
-//----------------------------------------------------------------
-// Fonction  : Initialisation des variables acoustiques à chaque
-//             pas de temps
-// Version du: 17/10/2006
-// Historique: 17/10/2006 (C.Bécarie - Tinea)
-//================================================================
-(
-)
-{
-    for (int i = 0; i <= Loi_emission::Nb_Octaves; i++)
-    {
-        W_cellule[i] = 0;
-        Lw_cellule[i] = 0;
-    }
-}
-
-//================================================================
-    void Segment::AddPuissanceAcoustique
-//----------------------------------------------------------------
-// Fonction  : Ajoute la puissance acoustique d'une véhicule à celle
-//             de la cellule
-// Version du: 17/10/2006
-// Historique: 17/10/2006 (C.Bécarie - Tinea)            
-//================================================================
-(
-    double* dbPuissanceAcoustique    
-)
-{
-    VoieMicro*  pVoie;
-    TuyauMicro* pTuyau;
-
-    pVoie = (VoieMicro*)GetParent();
-    if(!pVoie)
-        return;
-
-    pTuyau = (TuyauMicro*)pVoie->GetParent();
-    if(!pTuyau)
-        return;
-        
-    for(int i=0; i<=Loi_emission::Nb_Octaves; i++)
-        W_cellule[i] += dbPuissanceAcoustique[i] / (GetLength());
-}
-
 
 //---------------------------------------------------------------------------
-// COnstructeurs, destructeurs et assimilés
+// COnstructeurs, destructeurs et assimilï¿½s
 //---------------------------------------------------------------------------
 
 // Destructeur
@@ -194,7 +60,7 @@ SegmentMacro::~SegmentMacro()
          m_pFrontiereAval = NULL;
 }
 
-// Constructeur par défaut
+// Constructeur par dï¿½faut
 SegmentMacro::SegmentMacro()
 {
         cell_amont=NULL;
@@ -218,7 +84,7 @@ SegmentMacro::SegmentMacro
     double  dbVitReg
 ):Segment(nLastID, dbVitReg)
 {
- //constructeur appelé dans la segmentation
+ //constructeur appelï¿½ dans la segmentation
         m_strLabel = sLabel;
 
         m_dbPasEspace=_pasespace;
@@ -230,159 +96,10 @@ SegmentMacro::SegmentMacro
 
         cell_amont=NULL;
         cell_aval=NULL;
-
-        //Lw_cellule      = new double[Loi_emission::Nb_Octaves+1];
       
         m_pFrontiereAmont = pFAmont;
         m_pFrontiereAval = pFAval;
 }
-
-//---------------------------------------------------------------------------
-// Fonctions de simulation des segments
-//---------------------------------------------------------------------------
-
-//  Initialisation de la simulation
-bool Segment::InitSimulation(bool bCalculAcoustique, bool bSirane, std::string strTuyau)
-{
-    Tuyau*  pTuyau;
-
-    pTuyau = (Tuyau*)GetParent()->GetParent();
-    if(!pTuyau)
-        return false;
-
-    // Mise à jour des documents XML
-    if(!bCalculAcoustique )
-    {	    	    
-        if(pTuyau->IsMacro())
-        {
-            std::deque< TimeVariation<TraceDocTrafic> >::iterator itXmlDocTrafic;
-            for( itXmlDocTrafic = m_pReseau->m_xmlDocTrafics.begin(); itXmlDocTrafic!= m_pReseau->m_xmlDocTrafics.end(); ++itXmlDocTrafic)
-            {
-                itXmlDocTrafic->m_pData->AddCellule( m_nID, m_strLabel, strTuyau, GetAbsAmont(), GetOrdAmont(), GetHautAmont(), GetAbsAval(),GetOrdAval(), GetHautAval() );	    
-            }
-        }
-    }
-    else
-    {
-        m_pReseau->m_XmlDocAcoustique->AddCellule( m_nID, m_strLabel, strTuyau, GetAbsAmont(), GetOrdAmont(), GetHautAmont(), GetAbsAval(),GetOrdAval(), GetHautAval());
-    }
-
-    return true;
-}
-
-
-// Initialisation de la simulation pour Sirane (production de la définition des cellules)
-void Segment::InitSimulationSirane(ePhaseCelluleSirane iPhase)
-{
-    std::vector<Point*> lstPts;
-    lstPts.push_back(GetExtAmont());
-    for(size_t i = 0 ; i < m_LstPtsInternes.size(); i++)
-    {
-        lstPts.push_back(m_LstPtsInternes[i]);
-    }
-    lstPts.push_back(GetExtAval());
-    m_pReseau->m_XmlDocSirane->AddCellule(m_strLabel, CELL_BRIN, lstPts, iPhase);
-}
-
-//---------------------------------------------------------------------------
-// Fonctions de calcul des émissions acoustiques
-//---------------------------------------------------------------------------
-
-// Calcul des émissions acoustiques d'un véhicule de la cellule
-void SegmentMacro::Calcul_emission_vehicule(Loi_emission* Loi, std::string typ_rev)
-{
-    int     taille  = Loi_emission::Nb_Octaves + 1 ;
-    double  dbVit;
-    double  dbAcc, dbAccAnt;
-    double  dbVitAnt;
-    bool    bAcc;
-    int     nVitNew, nVitOld;
-
-    dbVit    = (m_pFrontiereAmont->GetVit(0)+ m_pFrontiereAval->GetVit(0))/2.;
-    dbVitAnt = (m_pFrontiereAmont->GetVit(1)+ m_pFrontiereAval->GetVit(1))/2.;
-
-    dbAcc    = (m_pFrontiereAmont->GetAcc(0)+ m_pFrontiereAval->GetAcc(0))/2.;
-    dbAccAnt = (m_pFrontiereAmont->GetAcc(1)+ m_pFrontiereAval->GetAcc(1))/2.;
-
-    bAcc = (dbAcc >= 1 && dbAccAnt >= 1) || (dbAcc <= -0.2 && dbAccAnt >= -0.2) || ( (dbAcc > -0.2 && dbAccAnt < 1) && (dbAcc > -0.2 && dbAccAnt < 1) );
-
-    nVitNew = (int)(dbVit *3.6);
-    if( dbVit*3.6 > 20)
-    {
-        if (div(nVitNew,2).rem > 0)
-            nVitNew--;
-    }
-
-    nVitOld = (int)(dbVitAnt *3.6);
-    if( dbVitAnt*3.6 > 20)
-    {
-        if (div(nVitOld,2).rem > 0)
-                nVitOld--;
-    }
-
-    Loi->CalculEmissionBruit(W_cellule, dbVit, dbAcc, typ_rev, "VL");
-
-}// Fin de la méthode void SegmentMacro::Calcul_emission_vehicule
-
-
-// Calcul de l'émission acoustique du segment
-void SegmentMacro::Calcul_emission_cellule(Loi_emission* Loi, std::string typ_rev)
-{
-    double  dbConcAnt;
-
-    if( fabs(m_pFrontiereAmont->GetN(1) - m_pFrontiereAval->GetN(1)) < ZERO_DOUBLE )
-        dbConcAnt = 0;
-    else
-        dbConcAnt =  ( m_pFrontiereAmont->GetN(1) - m_pFrontiereAval->GetN(1) ) / m_dbPasEspace;
-
-    if(dbConcAnt==0)   // pour eviter une erreur
-    {
-        for (int i=Loi_emission::Nb_Octaves; i>=0; i--)    // la boucle a lieu avec i-- pour n'appeler getNb_Octave qu'une seule fois
-
-                        Lw_cellule[i]=0;
-
-        }
-        else
-        {
-            Calcul_emission_vehicule(Loi, typ_rev);
-                double log_conc_rel=10*log10(dbConcAnt);       // pour eviter le calcul successif de log
-                for (int i=Loi_emission::Nb_Octaves; i>=0; i--)    // la boucle a lieu avec i-- pour n'appeler getNb_Octave qu'une seule fois
-                {
-                        Lw_cellule[i]=10 * log10 (W_cellule[i] / pow((double)10, (double)-12) )+log_conc_rel;
-
-                }
-        }
-}
-
-//================================================================
-    void SegmentMacro::EmissionOutput
-//----------------------------------------------------------------
-// Fonction  : Sortie des calculs acoustique
-// Version du: 12/10/2006
-// Historique: 12/10/2006 (C.Bécarie - Tinea)
-//             Création
-//================================================================
-(    
-)
-{
-    // Sortie XML
-    bool bOK =  false;
-	double * dbTest;
-
-	dbTest = new double[Loi_emission::Nb_Octaves+1];
-    for(int i=0; i<=Loi_emission::Nb_Octaves; i++)
-    {
-        dbTest[i] = Lw_cellule[i];
-        if(Lw_cellule[i]>0.000001)
-            bOK = true;
-    }
-
-    if(bOK)
-        m_pReseau->m_XmlDocAcoustique->AddCellSimu( m_nID, dbTest);
-
-    delete [] dbTest;
-}
-
 
 //---------------------------------------------------------------------------
 // Fonctions d'affectation des variables
@@ -430,24 +147,11 @@ SegmentMacro* SegmentMacro::getSegmentAval  (void)
 // Ecriture des fichiers de sortie trafic
 void SegmentMacro::TrafficOutput()
 {
-	std::string ssTuyau = m_pReseau->GetLibelleTronconEve( (Tuyau*)GetParent()->GetParent(), 1);
+	std::string ssTuyau = "";
 	std::string ssLib = GetLabel();
     std::deque< TimeVariation<TraceDocTrafic> >::iterator itXmlDocTrafic;
 
-    // Ecriture du résultat (N, Vit et Acc) pour la frontière amont de la première cellule
-    //if(!cell_amont)
-    {
-        //memset(strNom,0x0,sizeof(strNom));
-        //strncat(strNom, m_strNom, strlen(m_strNom)-1);
-        //strcat(strNom, "*" );
-        //Reseau::FicTraficCel<<strNom<<" "<<"*"<<" "<<"*"<<" "<<m_pFrontiereAmont->GetVit(0)<<" "
-        //        <<m_pFrontiereAmont->GetAcc(0)<<" "<<m_pFrontiereAmont->GetN(0)<<endl;
-    }
-
-    //Reseau::FicTraficCel<<m_strNom<<" "<<m_dbConc<<" "<<m_dbDebit<<" "<<m_pFrontiereAval->GetVit(0)<<" "
-      //          <<m_pFrontiereAval->GetAcc(0)<<" "<<m_pFrontiereAval->GetN(0)<<endl;
-
-	// Ecriture des fichiers résultat
+	// Ecriture des fichiers rï¿½sultat
     for( itXmlDocTrafic = m_pReseau->m_xmlDocTrafics.begin(); itXmlDocTrafic!= m_pReseau->m_xmlDocTrafics.end(); ++itXmlDocTrafic )
     {
 		itXmlDocTrafic->m_pData->AddCellSimu(m_nID, m_dbConc, m_dbDebit, m_pFrontiereAmont->GetVit(0), m_pFrontiereAmont->GetAcc(0), m_pFrontiereAmont->GetN(0), m_pFrontiereAval->GetVit(0), m_pFrontiereAval->GetAcc(0), m_pFrontiereAval->GetN(0)
@@ -458,10 +162,10 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     void SegmentMacro::AddVoisinAmont
 //----------------------------------------------------------------
-// Fonction  : Ajoute un voisin à la liste des voisins amont
+// Fonction  : Ajoute un voisin ï¿½ la liste des voisins amont
 // Version du: 07/01/2005
-// Historique: 07/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 07/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro*   pSegment
@@ -470,7 +174,7 @@ void SegmentMacro::TrafficOutput()
     std::deque <Voisin>::iterator cur, debut, fin;
     Voisin  v;
 
-    // On vérifie si le segment est déjà dans la liste
+    // On vï¿½rifie si le segment est dï¿½jï¿½ dans la liste
     debut   = m_LstVoisinsAmont.begin();
     fin     = m_LstVoisinsAmont.end();
 
@@ -492,10 +196,10 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     void SegmentMacro::AddVoisinAval
 //----------------------------------------------------------------
-// Fonction  : Ajoute un voisin à la liste des voisins aval
+// Fonction  : Ajoute un voisin ï¿½ la liste des voisins aval
 // Version du: 07/01/2005
-// Historique: 07/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 07/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro *   pSegment,
@@ -505,7 +209,7 @@ void SegmentMacro::TrafficOutput()
     std::deque <Voisin>::iterator cur, debut, fin;
     Voisin  v;
 
-    // On vérifie si le segment est déjà dans la liste
+    // On vï¿½rifie si le segment est dï¿½jï¿½ dans la liste
     debut   = m_LstVoisinsAval.begin();
     fin     = m_LstVoisinsAval.end();
 
@@ -530,16 +234,16 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     double SegmentMacro::GetDebitInjecteTo
 //----------------------------------------------------------------
-// Fonction  : Renvoie le débit injecté au segment passé en paramètre
+// Fonction  : Renvoie le dï¿½bit injectï¿½ au segment passï¿½ en paramï¿½tre
 //             par le segment courant
 // Version du: 07/01/2005
-// Historique: 07/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 07/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro         *pSegment,
-    bool            bAnt        /* = false */       // Indique si on renvoie le débit du pas de temps
-                                                    // précédent
+    bool            bAnt        /* = false */       // Indique si on renvoie le dï¿½bit du pas de temps
+                                                    // prï¿½cï¿½dent
 )
 {
     std::deque <Voisin>::iterator cur, debut, fin;
@@ -559,18 +263,18 @@ void SegmentMacro::TrafficOutput()
         }
     }
 
-    // Segment non trouvé, on retourne un débit nul
+    // Segment non trouvï¿½, on retourne un dï¿½bit nul
     return 0;
 }
 
 //================================================================
     double SegmentMacro::GetDebitEquiTo
 //----------------------------------------------------------------
-// Fonction  : Renvoie le débit injecté au segment passé en paramètre
+// Fonction  : Renvoie le dï¿½bit injectï¿½ au segment passï¿½ en paramï¿½tre
 //             par le segment courant
 // Version du: 07/01/2005
-// Historique: 07/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 07/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro         *pSegment
@@ -588,7 +292,7 @@ void SegmentMacro::TrafficOutput()
                 return cur->dbDebitEqui;
     }
 
-    // Segment non trouvé, on retourne un débit nul
+    // Segment non trouvï¿½, on retourne un dï¿½bit nul
     return 0;
 }
 
@@ -596,17 +300,17 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     void SegmentMacro::SetDebitInjecteTo
 //----------------------------------------------------------------
-// Fonction  : Affecte le débit injecté au segment passé en paramètre
+// Fonction  : Affecte le dï¿½bit injectï¿½ au segment passï¿½ en paramï¿½tre
 //             par le segment courant
 // Version du: 10/01/2005
-// Historique: 10/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 10/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro      *  pSegment,
     double          dbDebit,
-    bool            bMAJAnt     /* = true */    // Indique si il faut mettre à jour
-                                                // le débit antérieur
+    bool            bMAJAnt     /* = true */    // Indique si il faut mettre ï¿½ jour
+                                                // le dï¿½bit antï¿½rieur
 )
 {
     std::deque <Voisin>::iterator cur, debut, fin;
@@ -630,11 +334,11 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     void SegmentMacro::SetDebitEquiTo
 //----------------------------------------------------------------
-// Fonction  : Affecte le débit injecté au segment passé en paramètre
+// Fonction  : Affecte le dï¿½bit injectï¿½ au segment passï¿½ en paramï¿½tre
 //             par le segment courant
 // Version du: 10/01/2005
-// Historique: 10/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 10/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro      *  pSegment,
@@ -663,11 +367,11 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     double SegmentMacro::GetDebitInjecteCumuleTo
 //----------------------------------------------------------------
-// Fonction  : Renvoie le débit injecté cumulé au segment passé en paramètre
+// Fonction  : Renvoie le dï¿½bit injectï¿½ cumulï¿½ au segment passï¿½ en paramï¿½tre
 //             par le segment courant
 // Version du: 07/01/2005
-// Historique: 07/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 07/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro         *pSegment
@@ -685,18 +389,18 @@ void SegmentMacro::TrafficOutput()
             return cur->dbDebitInjecteCumule;
     }
 
-    // Segment non trouvé, on retourne un débit nul
+    // Segment non trouvï¿½, on retourne un dï¿½bit nul
     return 0;
 }
 
 //================================================================
     void SegmentMacro::SetDebitInjecteCumuleTo
 //----------------------------------------------------------------
-// Fonction  : Affecte le débit injecté cumule au segment passé en paramètre
+// Fonction  : Affecte le dï¿½bit injectï¿½ cumule au segment passï¿½ en paramï¿½tre
 //             par le segment courant
 // Version du: 10/01/2005
-// Historique: 10/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 10/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro      *pSegment,
@@ -720,10 +424,10 @@ void SegmentMacro::TrafficOutput()
     void SegmentMacro::SetDemandeTo
 //----------------------------------------------------------------
 // Fonction  : Affecte la demande du segment courant pour
-//             le segment passé en paramètre
+//             le segment passï¿½ en paramï¿½tre
 // Version du: 10/01/2005
-// Historique: 10/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 10/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro      *pSegment,
@@ -747,10 +451,10 @@ void SegmentMacro::TrafficOutput()
     double SegmentMacro::GetDemandeTo
 //----------------------------------------------------------------
 // Fonction  : Retourne la demande du segment courant pour le
-//             segment voisin passé en paramètre
+//             segment voisin passï¿½ en paramï¿½tre
 // Version du: 18/01/2005
-// Historique: 18/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 18/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro      *pSegment
@@ -774,11 +478,11 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     double SegmentMacro::GetDemandeFrom
 //----------------------------------------------------------------
-// Fonction  : Retourne la demande du segment passé en paramètre
+// Fonction  : Retourne la demande du segment passï¿½ en paramï¿½tre
 //             pour le segment courant
 // Version du: 18/01/2005
-// Historique: 18/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 18/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro      *pSegment
@@ -802,16 +506,16 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     double SegmentMacro::GetDebitRecuFrom
 //----------------------------------------------------------------
-// Fonction  : Renvoie le débit reçu par le segment courant et
-//             provenant du segment passé en paramètre
+// Fonction  : Renvoie le dï¿½bit reï¿½u par le segment courant et
+//             provenant du segment passï¿½ en paramï¿½tre
 // Version du: 07/01/2005
-// Historique: 07/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 07/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro    *pSegment,
-     bool bAnt  /* = false */    // Indique si on renvoie le débit du pas de temps
-                                // précédent
+     bool bAnt  /* = false */    // Indique si on renvoie le dï¿½bit du pas de temps
+                                // prï¿½cï¿½dent
 )
 {
     std::deque <Voisin>::iterator cur, debut, fin;
@@ -826,18 +530,18 @@ void SegmentMacro::TrafficOutput()
             return pSegment->GetDebitInjecteTo(this, bAnt);
     }
 
-    // Segment non trouvé, on retourne un débit nul
+    // Segment non trouvï¿½, on retourne un dï¿½bit nul
     return 0;
 }
 
 //================================================================
     double SegmentMacro::GetDebitCumuleRecuFrom
 //----------------------------------------------------------------
-// Fonction  : Renvoie le débit cumulé reçu par le segment courant et
-//             provenant du segment passé en paramètre
+// Fonction  : Renvoie le dï¿½bit cumulï¿½ reï¿½u par le segment courant et
+//             provenant du segment passï¿½ en paramï¿½tre
 // Version du: 07/01/2005
-// Historique: 07/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 07/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
     SegmentMacro    *pSegment
@@ -855,18 +559,18 @@ void SegmentMacro::TrafficOutput()
             return pSegment->GetDebitInjecteCumuleTo(this);
     }
 
-    // Segment non trouvé, on retourne un débit nul
+    // Segment non trouvï¿½, on retourne un dï¿½bit nul
     return 0;
 }
 
 //================================================================
     double SegmentMacro::GetSommeDebitInjecte
 //----------------------------------------------------------------
-// Fonction  : Renvoie la somme des débits injectés par le segment
+// Fonction  : Renvoie la somme des dï¿½bits injectï¿½s par le segment
 //             courant vers les segments en aval
 // Version du: 07/01/2005
-// Historique: 07/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 07/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
 )
@@ -892,15 +596,15 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     double SegmentMacro::GetSommeDebitRecu
 //----------------------------------------------------------------
-// Fonction  : Renvoie la somme des débits reçus par le segment
+// Fonction  : Renvoie la somme des dï¿½bits reï¿½us par le segment
 //             courant et provenant des segments en amont
 // Version du: 07/01/2005
-// Historique: 07/01/2005 (C.Bécarie - Tinea)
-//             Création
+// Historique: 07/01/2005 (C.Bï¿½carie - Tinea)
+//             Crï¿½ation
 //================================================================
 (
-    bool bAnt  /* = false */    // Indique si on renvoie le débit du pas de temps
-                                // précédent
+    bool bAnt  /* = false */    // Indique si on renvoie le dï¿½bit du pas de temps
+                                // prï¿½cï¿½dent
 )
 {
     double  dbDebit;
@@ -925,24 +629,24 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     void SegmentMacro::ComputeTrafficEx
 //----------------------------------------------------------------
-// Fonction  :  Calcule les autres variables caractéristiques du trafic
-//              à partir de la quantité N
+// Fonction  :  Calcule les autres variables caractï¿½ristiques du trafic
+//              ï¿½ partir de la quantitï¿½ N
 // Version du:  03/07/2006
-// Historique:  03/07/2006 (C.Bécarie - Tinea)
-//              Création
+// Historique:  03/07/2006 (C.Bï¿½carie - Tinea)
+//              Crï¿½ation
 //================================================================
 (
     double /*nInstant*/
 )
 {
     
-    // Débit de sortie de la cellule
+    // Dï¿½bit de sortie de la cellule
     if( fabs(m_pFrontiereAval->GetN(0) - m_pFrontiereAval->GetN(1)) < ZERO_DOUBLE )
         m_dbDebit = 0;
     else
         m_dbDebit =  (m_pFrontiereAval->GetN(0) - m_pFrontiereAval->GetN(1)) / m_dbPasTemps;
 
-    // Concentration (calculée à la fin du pas de temps)
+    // Concentration (calculï¿½e ï¿½ la fin du pas de temps)
     if( fabs(m_pFrontiereAmont->GetN(0) - m_pFrontiereAval->GetN(0)) < ZERO_DOUBLE )
         m_dbConc = 0;
     else
@@ -952,11 +656,11 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     double SegmentMacro::CalculDemandeVar
 //----------------------------------------------------------------
-// Fonction  :  Calcule de la demande dans le cas de la méthode
+// Fonction  :  Calcule de la demande dans le cas de la mï¿½thode
 //              variationnelle
 // Version du:  03/07/2006
-// Historique:  03/07/2006 (C.Bécarie - Tinea)
-//              Création
+// Historique:  03/07/2006 (C.Bï¿½carie - Tinea)
+//              Crï¿½ation
 //================================================================
 (
 )
@@ -978,11 +682,11 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     double SegmentMacro::CalculOffreVar
 //----------------------------------------------------------------
-// Fonction  :  Calcule de l'offre dans le cas de la méthode
+// Fonction  :  Calcule de l'offre dans le cas de la mï¿½thode
 //              variationnelle
 // Version du:  03/07/2006
-// Historique:  03/07/2006 (C.Bécarie - Tinea)
-//              Création
+// Historique:  03/07/2006 (C.Bï¿½carie - Tinea)
+//              Crï¿½ation
 //================================================================
 (
 )
@@ -1013,11 +717,11 @@ void SegmentMacro::TrafficOutput()
     CDiagrammeFondamental* SegmentMacro::GetDiagFonda
 //----------------------------------------------------------------
 // Fonction  :  Renvoie le pointeur sur le diagramme fondamental
-//              du tuyau et remet à jour le contexte
+//              du tuyau et remet ï¿½ jour le contexte
 //              (c'est le diagramme du tuyau grand-parent)
 // Version du:  05/01/2007
-// Historique:  05/01/2007 (C.Bécarie - Tinea )
-//              Création
+// Historique:  05/01/2007 (C.Bï¿½carie - Tinea )
+//              Crï¿½ation
 //================================================================
 (
 )
@@ -1033,8 +737,8 @@ void SegmentMacro::TrafficOutput()
 //----------------------------------------------------------------
 // Fonction  :  Initialise les variables de simulation
 // Version du:  13/07/2007
-// Historique:  13/07/2007 (C.Bécarie - Tinea )
-//              Création
+// Historique:  13/07/2007 (C.Bï¿½carie - Tinea )
+//              Crï¿½ation
 //================================================================
 (
 )
@@ -1051,66 +755,14 @@ void SegmentMacro::TrafficOutput()
        m_pFrontiereAval->InitSimu( pTV->GetVx() );
 }
 
-
-
-//================================================================
-    void Segment::AddSpeedContribution
-//----------------------------------------------------------------
-// Fonction  :  Ajoute une contribution à la cellule Sirane
-// Version du:  10/04/2012
-// Historique:  10/04/2012 (O.Tonck - IPSIS)
-//              Création
-//================================================================
-(
-    TypeVehicule * pTypeVeh,
-    double dbVitStart,
-    double dbVitEnd,
-    double dbPasDeTemps
-)
-{
-    // on interpole la vitesse sur le pas de temps pour répartir au mieux
-    // le temps dans les différentes plages. On travaille en kilomètres par heure
-    double dbVitMin = min(dbVitStart, dbVitEnd);
-    dbVitMin *= 3.6;
-    double dbVitMax = max(dbVitStart, dbVitEnd);
-    dbVitMax *= 3.6;
-
-    double dbPente = (dbVitMax-dbVitMin) / dbPasDeTemps;
-
-    double  dbMinBound, dbMaxBound;
-    int     nPlage = GetSpeedRange(dbVitMin);
-    GetSpeedBounds(nPlage, dbMinBound, dbMaxBound);
-
-    // Si pas de variation de vitesse, on affecte tout le pas de temps à la plage de vitesse correspondante.
-    if(dbPente  == 0)
-    {
-        AddSpeedContribution(pTypeVeh, nPlage, dbPasDeTemps);
-    }
-    else
-    {
-        while(dbVitMin < dbVitMax)
-        {
-            // affectation de la bonne durée à la plage de vitesse courante
-            double dbDureeDansPlage = (min(dbVitMax, dbMaxBound)-dbVitMin) / dbPente;
-            AddSpeedContribution(pTypeVeh, nPlage, dbDureeDansPlage);
-
-            // préparation de l'itération suivante
-            dbVitMin = min(dbVitMax, dbMaxBound);
-            nPlage++;
-            //nPlage = GetSpeedRange(dbVitMin);
-            GetSpeedBounds(nPlage, dbMinBound, dbMaxBound);
-        }
-    }
-}
-
 //================================================================
     int    Segment::GetSpeedRange
 //----------------------------------------------------------------
 // Fonction  :  Donne les bornes min et max de la plage de vitesse
-// dont l'index est donné en paramètre
+// dont l'index est donnï¿½ en paramï¿½tre
 // Version du:  10/04/2012
 // Historique:  10/04/2012 (O.Tonck - IPSIS)
-//              Création
+//              Crï¿½ation
 //================================================================        
 (
     double dbVit
@@ -1124,7 +776,7 @@ void SegmentMacro::TrafficOutput()
     }
     else
     {
-        // Plage particulière de 0 à 1 (les deux exclus)
+        // Plage particuliï¿½re de 0 ï¿½ 1 (les deux exclus)
         if(dbVit>0 && dbVit<1)
         {
             result = 1;
@@ -1149,11 +801,11 @@ void SegmentMacro::TrafficOutput()
 //================================================================
     void Segment::GetSpeedBounds
 //----------------------------------------------------------------
-// Fonction  :  Calcule les bornes inférieure et supérieure 
-// (en km/h) de la plage dont l'index est passé en paramètre
+// Fonction  :  Calcule les bornes infï¿½rieure et supï¿½rieure 
+// (en km/h) de la plage dont l'index est passï¿½ en paramï¿½tre
 // Version du:  10/04/2012
 // Historique:  10/04/2012 (O.Tonck - IPSIS)
-//              Création
+//              Crï¿½ation
 //================================================================
 (
     int     nPlage,
@@ -1178,86 +830,8 @@ void SegmentMacro::TrafficOutput()
     }
 }
 
-//================================================================
-    void Segment::AddSpeedContribution
-//----------------------------------------------------------------
-// Fonction  :  Ajoute une durée à la plage de vitesse dont
-// l'index est précisé en paramètre
-// Version du:  10/04/2012
-// Historique:  10/04/2012 (O.Tonck - IPSIS)
-//              Création
-//================================================================
-(
-    TypeVehicule * pType,
-    int     nPlage,
-    double  dbDuree
-)
-{
-    std::vector<double > & lstCumuls = m_LstCumulsSirane[pType];
-    // on agrandi automatiquement la liste des plages si nécessaire
-    while((int)lstCumuls.size() <= nPlage)
-    {
-        lstCumuls.push_back(0.0);
-    }
-
-    lstCumuls[nPlage] += dbDuree;
-}
-
-//================================================================
-    void Segment::SortieSirane
-//----------------------------------------------------------------
-// Fonction  :  Produit la sortie de la cellule sirane
-// Version du:  10/04/2012
-// Historique:  10/04/2012 (O.Tonck - IPSIS)
-//              Création
-//================================================================
-(
-)
-{
-    m_pReseau->m_XmlDocSirane->AddCellSimu(GetLabel());
-
-    // Pour tous les types de véhicules
-    std::map<TypeVehicule*, std::vector<double> >::iterator iter;
-    for(iter = m_LstCumulsSirane.begin(); iter != m_LstCumulsSirane.end(); iter++)
-    {
-        // On constitue une liste de plages avec vitesse min, max et durée cumulée
-        // pour lesquelles la durée n'est pas nulle
-        std::vector<double> LstVitMin;
-        std::vector<double> LstVitMax;
-        std::vector<double> LstDuree;
-        double minBound, maxBound;
-        for(size_t i = 0; i < iter->second.size(); i++)
-        {
-            if(iter->second[i] > 0)
-            {
-                LstDuree.push_back(iter->second[i]);
-                GetSpeedBounds((int)i, minBound, maxBound);
-                LstVitMin.push_back(minBound);
-                LstVitMax.push_back(maxBound);
-            }
-        }
-    
-        m_pReseau->m_XmlDocSirane->AddCellSimuForType(iter->first->GetLabel(), LstVitMin, LstVitMax, LstDuree);
-    }
-}
-
-//================================================================
-    void Segment::InitVariablesSirane
-//----------------------------------------------------------------
-// Fonction  :  Remet à zéro les variables Sirane pour nouvelle
-// période d'agrégation
-// Historique:  10/04/2012 (O.Tonck - IPSIS)
-//              Création
-//================================================================
-(
-)
-{
-    m_LstCumulsSirane.clear();
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template void Voisin::serialize(boost::archive::xml_woarchive & ar, const unsigned int version);
 template void Voisin::serialize(boost::archive::xml_wiarchive & ar, const unsigned int version);
@@ -1282,25 +856,6 @@ void Segment::serialize(Archive& ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_BASE_OBJECT_NVP(Troncon);
 
     ar & BOOST_SERIALIZATION_NVP(m_nID);
-    ar & BOOST_SERIALIZATION_NVP(m_LstCumulsSirane);
-    if(Archive::is_loading::value)
-    {
-        if(Lw_cellule!=NULL)
-        {
-            delete [] Lw_cellule;
-        }
-        if(W_cellule!=NULL)
-        {
-            delete [] W_cellule;
-        }
-        Lw_cellule = new double[Loi_emission::Nb_Octaves+1];
-        W_cellule = new double[Loi_emission::Nb_Octaves+1];
-    }
-    for(int i = 0; i < Loi_emission::Nb_Octaves+1; i++)
-    {
-        ar & BOOST_SERIALIZATION_NVP2("Lw_cellule", Lw_cellule[i]);
-        ar & BOOST_SERIALIZATION_NVP2("W_cellule", W_cellule[i]);
-    }
 }
     
 template void SegmentMacro::serialize(boost::archive::xml_woarchive & ar, const unsigned int version);
