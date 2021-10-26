@@ -1,0 +1,38 @@
+@PACKAGE_INIT@
+set(SYMUFLOW_VERSION_MAJOR "@SymuFlow_VERSION_MAJOR@")
+set(SYMUFLOW_VERSION_MINOR "@SymuFlow_VERSION_MINOR@")
+set(SYMUFLOW_VERSION_PATCH "@SymuFlow_VERSION_PATCH@")
+
+include(CMakeFindDependencyMacro)
+
+include("${CMAKE_CURRENT_LIST_DIR}/SymuFlowTarget.cmake")
+
+list(APPEND CMAKE_MODULE_PATH "@CMAKE_INSTALL_PREFIX@/lib/cmake/symuflow")
+
+find_dependency(SymuCore REQUIRED)
+
+find_dependency(Boost COMPONENTS
+  chrono
+  date_time
+  locale
+  log
+  thread
+  serialization
+  wserialization
+  filesystem
+  system
+  program_options
+  python
+  REQUIRED)
+
+find_dependency(GDAL REQUIRED)
+
+find_dependency(XercesC REQUIRED)
+
+find_dependency(ODBC REQUIRED)
+
+find_dependency(Python3 REQUIRED)
+
+find_dependency(RapidJSON REQUIRED)
+
+find_dependency(Xqilla REQUIRED)
