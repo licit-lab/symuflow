@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.10)
 
-project (SymuFlow VERSION 1.0.0)
+project (SymuFlow VERSION 1.1.0)
 
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
