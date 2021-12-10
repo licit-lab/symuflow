@@ -2833,9 +2833,17 @@ Tuyau* Vehicule::CalculNextTuyau
             // on cherche le tuyau de l'itinéraire qui précéde la brique
             int lastTuyIdx = GetItineraireIndex(isTuyauAmont, pTuyau->GetBriqueParente());
 
-            assert(lastTuyIdx != -1); // de toute façon, ca va planter à pTuyau->GetCnxAssAv(); si pTuyau reste un tuyau interne
-
-            pTuyau = (TuyauMicro*)m_pTrip->GetFullPath()->at(lastTuyIdx);
+            if(lastTuyIdx != -1)
+            {
+                pTuyau = (TuyauMicro*)m_pTrip->GetFullPath()->at(lastTuyIdx);
+            }
+            else
+            {
+                // Cas du pilotage externe du véhicule (par EPiCAM par exemple) qui conduit le véhicule à l'interieur d'un CAF sans être passé
+                // par un tronçon amont à ce CAF : plutôt que de planter sur l'ancien assert, on renvoie NULL (on ne ocnnait pas le tuyau suivant),
+                // ce qui n'est pas très grave dans ce mode.
+                return NULL;
+            }
         }
 
         // Recherche des élements correspondants sur réseau d'affectation
