@@ -15,39 +15,39 @@ public:
     SymuViaFleet(Reseau * pNetwork);
     virtual ~SymuViaFleet();
 
-    // Instanciation de l'objet spécifique à la flotte contenant les paramètres d'un véhicule liés à celle-ci
+    // Instanciation de l'objet spï¿½cifique ï¿½ la flotte contenant les paramï¿½tres d'un vï¿½hicule liï¿½s ï¿½ celle-ci
     virtual AbstractFleetParameters * CreateFleetParameters();
 
     // Initialisation de la flotte pour la simulation de trafic
     virtual void InitSimuTrafic(std::deque< TimeVariation<TraceDocTrafic> > & docTrafics);
 
-    // Sorties spécifiques à la flotte dans les fichiers résultats
+    // Sorties spï¿½cifiques ï¿½ la flotte dans les fichiers rï¿½sultats
     virtual void SortieTrafic(DocTrafic *pXMLDocTrafic);
 
-    // Traitements spécifiques à la flotte appelés lors du FinCalculTrafic
+    // Traitements spï¿½cifiques ï¿½ la flotte appelï¿½s lors du FinCalculTrafic
     virtual void FinCalculTrafic(Vehicule * pVeh);
 
-    // Activation d'un véhicule sur ordre
-    virtual void ActivateVehicle(double dbInstant, VehicleToCreate * pVehicleToCreate);
+    // Activation d'un vï¿½hicule sur ordre
+    virtual boost::shared_ptr<Vehicule> ActivateVehicle(double dbInstant, VehicleToCreate * pVehicleToCreate);
 
-    // Gestion de la terminaison d'une étape par un véhicule de la flotte.
+    // Gestion de la terminaison d'une ï¿½tape par un vï¿½hicule de la flotte.
     virtual void OnCurrentLegFinished(boost::shared_ptr<Vehicule> pVehicle, VoieMicro * pDestinationEnterLane, double dbInstDestinationReached, double dbInstant, double dbTimeStep);
 
-    // Met à jour le Trip en fonction des tuyaux parcourus
+    // Met ï¿½ jour le Trip en fonction des tuyaux parcourus
     virtual void SetLinkUsed(double dbInstant, Vehicule * pVeh, Tuyau * pLink);
 
-    // Effectue les opérations à faire à l'activation d'un véhicule
+    // Effectue les opï¿½rations ï¿½ faire ï¿½ l'activation d'un vï¿½hicule
     virtual void OnVehicleActivated(boost::shared_ptr<Vehicule> pVeh, double dbInstant);
 
-    // Renvoie une map d'attributs à sortir de façon spécifique pour un véhicule une fois la simulation terminée
+    // Renvoie une map d'attributs ï¿½ sortir de faï¿½on spï¿½cifique pour un vï¿½hicule une fois la simulation terminï¿½e
     virtual std::map<std::string, std::string> GetOutputAttributesAtEnd(Vehicule * pV);
 
 protected:
-    // Activation des véhicules pour le Trip passé en paramètres (si besoin)
+    // Activation des vï¿½hicules pour le Trip passï¿½ en paramï¿½tres (si besoin)
     virtual std::vector<boost::shared_ptr<Vehicule> > ActivateVehiclesForTrip(double dbInstant, double dbTimeStep, Trip * pTrip);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 	friend class boost::serialization::access;

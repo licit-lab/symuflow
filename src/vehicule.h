@@ -680,7 +680,7 @@ virtual void        CalculVoiesPossibles(double dbInstant);
     std::vector<MouvementsInsertion> & GetMouvementsInsertion() {return m_MouvementsInsertion;};
 
     // Pilotage
-    double		Drive(TuyauMicro *pT, int nVoie, double dbPos, bool bForce);
+    double		Drive(TuyauMicro *pT, int nVoie, double dbPos, double * dbSpeed, double * dbAcceleration, bool bForce);
     int			Delete();
     int			AlterRoute(const std::vector<Tuyau*> & newIti);
 

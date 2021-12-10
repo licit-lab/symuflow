@@ -769,7 +769,7 @@ boost::shared_ptr<Vehicule> SymuViaTripNode::GenerateVehicle
             else if (pZone || !pConnexion)
             {
                 // Dans les modes où l'origine est un tuyau, on affecte à l'attribut entrée le nom du noeud amont à ce tuyau
-                ssEntree = pTuy->GetCnxAssAm()->GetID();
+                ssEntree = pTuy->GetCnxAssAm() ? pTuy->GetCnxAssAm()->GetID() : pTuy->getConnectionAmont()->GetID();
             }
 
             // ETS 140926 

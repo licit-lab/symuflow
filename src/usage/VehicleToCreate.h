@@ -13,7 +13,7 @@ namespace boost {
 
 #include <string>
 
-// Définition des paramètres de création arbitraire d'un véhicule (fonctions SymCreateVehicle)
+// Dï¿½finition des paramï¿½tres de crï¿½ation arbitraire d'un vï¿½hicule (fonctions SymCreateVehicle)
 class VehicleToCreate
 {
 public:
@@ -27,13 +27,26 @@ public:
     Trip * GetTrip();
     void SetTrip(Trip * pTrip);
 
+    void SetInitialPosition(double dbInitialPosition);
+    double GetInitialPosition() const;
+
+    void SetInitialSpeed(double dbInitialSpeed);
+    double GetInitialSpeed() const;
+
+    void SetInitialAcceleration(double dbInitialAcceleration);
+    double GetInitialAcceleration() const;
+
 protected:
     int m_VehicleId;
     AbstractFleet * m_pFleet;
     Trip * m_pTrip;
 
+    double m_dbInitialPosition;
+    double m_dbInitialSpeed;
+    double m_dbInitialAcceleration;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Sérialisation
+// Sï¿½rialisation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 private:
 	friend class boost::serialization::access;

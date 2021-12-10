@@ -2,6 +2,7 @@
 #include "XMLDocTrafic.h"
 
 #include "reseau.h"
+#include "ConnectionPonctuel.h"
 #include "symUtil.h"
 #include "SystemUtil.h"
 #include "TimeUtil.h"
@@ -1440,6 +1441,33 @@ void XMLDocTrafic::AddTroncon(const std::string & strLibelle, Point* pPtAm, Poin
         xmlattr->setValue(XS(SystemUtil::ToString(2, dbStockInitial).c_str()));
 	    xmlnodeCell->setAttributeNode(xmlattr);
     }
+
+    // For EPiCAM : added the previous and next links in SYM_TRONCON nodes to help identify the CAF's internal trajectory a vehicle is on
+    std::string upstreamLinkNames, downstreamLinkNames;
+    for (size_t iDownLink = 0; iDownLink < pTuyau->getConnectionAval()->m_LstTuyAv.size(); iDownLink++)
+    {
+        if (iDownLink > 0)
+        {
+            downstreamLinkNames += " ";
+        }
+        downstreamLinkNames += pTuyau->getConnectionAval()->m_LstTuyAv[iDownLink]->GetLabel();
+    }
+    for (size_t iUpLink = 0; iUpLink < pTuyau->getConnectionAmont()->m_LstTuyAm.size(); iUpLink++)
+    {
+        if (iUpLink > 0)
+        {
+            upstreamLinkNames += " ";
+        }
+        upstreamLinkNames += pTuyau->getConnectionAmont()->m_LstTuyAm[iUpLink]->GetLabel();
+    }
+
+    xmlattr = pXMLDoc->createAttribute( XS("troncons_amont") );
+    xmlattr->setValue(XS(upstreamLinkNames.c_str()));
+    xmlnodeCell->setAttributeNode(xmlattr);
+
+    xmlattr = pXMLDoc->createAttribute( XS("troncons_aval") );
+    xmlattr->setValue(XS(downstreamLinkNames.c_str()));
+    xmlnodeCell->setAttributeNode(xmlattr);
 
 	// Append		
 	m_XmlNodeTroncons->appendChild( xmlnodeCell );		

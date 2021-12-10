@@ -5026,7 +5026,7 @@ void Vehicule::UpdateVitesseReg(double dbInst)
     }
 }
 
-double Vehicule::Drive(TuyauMicro *pT, int nVoie, double dbPos, bool bForce)
+double Vehicule::Drive(TuyauMicro *pT, int nVoie, double dbPos, double * dbSpeed, double * dbAcceleration, bool bForce)
 {
     int result = 1;
 
@@ -5085,6 +5085,15 @@ double Vehicule::Drive(TuyauMicro *pT, int nVoie, double dbPos, bool bForce)
             // Ou pas car faux... du coup on ne modifie pas la vitesse dans ce cas et on garde la vitesse calculée : OK pour SymuGame pour la reproduction d'une simulation
         }
         m_pAcc[0] = (m_pVit[0] - m_pVit[1])/m_pReseau->GetTimeStep();
+    }
+
+    if (dbSpeed != NULL)
+    {
+        m_pVit[0] = *dbSpeed;
+    }
+    if (dbAcceleration != NULL)
+    {
+        m_pAcc[0] = *dbAcceleration;
     }
 
     this->m_bDejaCalcule = true;

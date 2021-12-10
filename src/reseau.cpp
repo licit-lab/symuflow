@@ -1938,7 +1938,22 @@ void Reseau::AppendSideLinks(Tuyau * pLink, std::set<Tuyau*> & lstLinksToMicro,
         for(size_t iVeh = 0; iVeh < m_VehiclesToCreate.size(); iVeh++)
         {
             VehicleToCreate * pVehicleToCreate = m_VehiclesToCreate[iVeh];
-            pVehicleToCreate->GetFleet()->ActivateVehicle(m_dbInstSimu, pVehicleToCreate);
+            boost::shared_ptr<Vehicule> pCreatedVeh = pVehicleToCreate->GetFleet()->ActivateVehicle(m_dbInstSimu, pVehicleToCreate);
+            if (pCreatedVeh != NULL)
+            {
+                if (pVehicleToCreate->GetInitialPosition() != NONVAL_DOUBLE)
+                {
+                    pCreatedVeh->SetPos(pVehicleToCreate->GetInitialPosition());
+                }
+                if (pVehicleToCreate->GetInitialSpeed() != NONVAL_DOUBLE)
+                {
+                    pCreatedVeh->SetVit(pVehicleToCreate->GetInitialSpeed());
+                }
+                if (pVehicleToCreate->GetInitialAcceleration() != NONVAL_DOUBLE)
+                {
+                    pCreatedVeh->SetAcc(pVehicleToCreate->GetInitialAcceleration());
+                }
+            }
             delete pVehicleToCreate;
         }
         m_VehiclesToCreate.clear();
@@ -11312,6 +11327,67 @@ Voie* Reseau::GetVoieFromID(const std::string & sTuyauID, int NumVoie)
     return pVehicle->GetVehicleID();
 }
 
+//=================================================================
+    int	Reseau::CreateVehicle
+//----------------------------------------------------------------
+// Fonction  : Création sur ordre d'un véhicule sans origine /
+//             destination particulière (véhicule EGO EPiCAM)
+// Remarque  :
+// Version du:
+// Historique:
+//=================================================================
+(
+    const std::string & vehicleType,
+    Tuyau * pLink,
+    int nVoie,
+    double dbDst,
+    double dbSpeed,
+    double dbAcceleration
+)
+{
+    TypeVehicule *pTV;
+    SymuViaTripNode * pOrigine, * pDestination = NULL;
+
+    // Vérifications
+    pTV = GetVehicleTypeFromID(vehicleType);
+    if(!pTV)
+        return -4;
+
+    // Récupération de l'origine
+    std::map<Tuyau*, TronconOrigine*>::iterator iter = m_mapOriginLinksForCreatedVehicles.find(pLink);
+    if (iter != m_mapOriginLinksForCreatedVehicles.end())
+    {
+        pOrigine = iter->second;
+    }
+    else
+    {
+        pOrigine = new TronconOrigine(pLink, NULL);
+        m_mapOriginLinksForCreatedVehicles[pLink] = (TronconOrigine*)pOrigine;
+    }
+
+    // On utilise une destination arbitraire (nécessaire en mode "iti" sinon SymuViaTripNode::GenerateVehicle renvoie NULL)
+    if (Liste_destinations.size() > 0)
+    {
+        pDestination = Liste_destinations[0];
+    }
+
+
+    SymuViaVehicleToCreate * pVehicle = new SymuViaVehicleToCreate(IncLastIdVeh(), GetSymuViaFleet());
+
+    pVehicle->SetOrigin(pOrigine);
+    pVehicle->SetDestination(pDestination);
+    pVehicle->SetTimeFraction(0);
+    pVehicle->SetNumVoie(nVoie);
+    pVehicle->SetType(pTV);
+    pVehicle->SetInitialPosition(dbDst);
+    pVehicle->SetInitialSpeed(dbSpeed);
+    pVehicle->SetInitialAcceleration(dbAcceleration);
+
+    m_VehiclesToCreate.push_back(pVehicle);
+
+    return pVehicle->GetVehicleID();
+}
+
 	// Modify current value of demand for an origin and a type of vehicle
 	// The new value is applied until the end of simulation
 	bool Reseau::SetDemand(std::string originID, std::string sVehicleType, double dbValue)
@@ -11563,7 +11639,9 @@ void Reseau::GetPlaqueFromID(const std::string & plaqueId, SymuViaTripNode * & p
     const std::string & sTroncon,
     int nVoie,
     double dbPos,
-    bool bForce
+    bool bForce,
+    double * dbSpeed,
+    double * dbAcceleration
 )
 {
     // Vérifications
@@ -11588,7 +11666,7 @@ void Reseau::GetPlaqueFromID(const std::string & plaqueId, SymuViaTripNode * & p
         //return -5;
     }
 
-    return pV->Drive((TuyauMicro*)pT, nVoie, dbPos, bForce);
+    return pV->Drive((TuyauMicro*)pT, nVoie, dbPos, dbSpeed, dbAcceleration, bForce);
 }
 
 //=================================================================

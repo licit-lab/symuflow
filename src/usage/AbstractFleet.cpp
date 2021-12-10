@@ -182,10 +182,11 @@ void AbstractFleet::ActivateVehicles(double dbInstant, double dbTimeStep)
     }
 }
 
-void AbstractFleet::ActivateVehicle(double dbInstant, VehicleToCreate * pVehicleToCreate)
+boost::shared_ptr<Vehicule> AbstractFleet::ActivateVehicle(double dbInstant, VehicleToCreate * pVehicleToCreate)
 {
     boost::shared_ptr<Vehicule> pVeh = CreateVehicle(dbInstant, m_pNetwork->GetTimeStep(), pVehicleToCreate->GetTrip(), pVehicleToCreate->GetVehicleID(), NULL);
     OnVehicleActivated(pVeh, dbInstant);
+    return pVeh;
 }
 
 bool AbstractFleet::IsCurrentLegDone(Vehicule * pVehicle, TripLeg * pCurrentLeg, double dbInstant, VoieMicro * pLane, double laneLength,

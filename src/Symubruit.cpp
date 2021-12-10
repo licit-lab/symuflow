@@ -1255,6 +1255,39 @@ int         externalUserID
     return SymCreateVehicle(DEFAULT_NETWORK_ID, originId, destinationId, typeVeh, dbt, links, junctionName, externalUserID);
 }
 
+// For EPiCAM
+SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymCreateVehicle
+(
+std::string sType,
+std::string sTroncon,
+int nVoie,
+double dbDst,
+double dbSpeed,
+double dbAcceleration
+)
+{
+    Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
+
+    // Pas de réseau chargé, sortie sur erreur
+    if (!pReseau)
+    {
+        return -1;
+    }
+
+    Tuyau *pLink = pReseau->GetLinkFromLabel(sTroncon);
+    if (!pLink)
+    {
+        return -2;
+    }
+
+    if (nVoie < 1 || nVoie > pLink->getNbVoiesDis())
+    {
+        return -3;
+    }
+
+    return pReseau->CreateVehicle(sType, pLink, nVoie - 1, dbDst, dbSpeed, dbAcceleration);
+}
+
 ///<summary>
 ///Méthode exportée de lancement sur ordre d'une tournée de livraison
 ///</summary>
@@ -1391,6 +1424,28 @@ SYMUBRUIT_EXPORT double SYMUBRUIT_CDECL SymDriveVehicle
     }	
 
 	return pReseau->DriveVehicle(nID, sTroncon, nVoie-1, dbPos, bForce);	
+}
+
+// For EPiCAM
+SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymDriveVehicle
+(
+    int nID,
+    std::string sTroncon,
+    int nVoie,
+    double dbPos,
+    double dbSpeed,
+    double dbAcceleration
+)
+{
+    Reseau* pReseau = theApp.GetNetwork(DEFAULT_NETWORK_ID);
+
+    // Pas de réseau chargé, sortie sur erreur
+    if(!pReseau)
+    {                
+        return -1;
+    }	
+
+	return pReseau->DriveVehicle(nID, sTroncon, nVoie-1, dbPos, true, &dbSpeed, &dbAcceleration);
 }
 
 
