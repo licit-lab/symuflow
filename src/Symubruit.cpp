@@ -1405,7 +1405,7 @@ SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymRemoveDeliveryPoint
 ///<param name="dbPos">Position du véhicule à la fin du pas de temps</param>
 ///<param name="bForce">Indique si la position du véhicule doit être adaptée afin de tenir compte
 /// de son environnement (vit. max., feux, leader, ...)</param>
-///<returns>ID du véhicule généré si OK, sinon code erreur négatif</returns>
+///<returns>distance parcourue par le véhicule si OK, sinon code erreur négatif</returns>
 SYMUBRUIT_EXPORT double SYMUBRUIT_CDECL SymDriveVehicle
 (
 	int				nID,	
@@ -1427,7 +1427,7 @@ SYMUBRUIT_EXPORT double SYMUBRUIT_CDECL SymDriveVehicle
 }
 
 // For EPiCAM
-SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymDriveVehicle
+SYMUBRUIT_EXPORT double SYMUBRUIT_CDECL SymDriveVehicle
 (
     int nID,
     std::string sTroncon,

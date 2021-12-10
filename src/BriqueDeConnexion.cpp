@@ -280,6 +280,42 @@ double BriqueDeConnexion::ComputeEmptyCost(TypeVehicule* pTypeVeh, Tuyau* pTuyau
     return dbResult;
 }
 
+Tuyau * GetExternalDownLink(std::set<Tuyau*> & testedLinks, std::set<Tuyau*> & linksToTest)
+{
+    Tuyau * pResult = NULL;
+    // test linksToTest
+    for (std::set<Tuyau*>::iterator it = linksToTest.begin(); it != linksToTest.end();)
+    {
+        if ((*it)->GetBriqueParente() == NULL)
+        {
+            // found it
+            return *it;
+        }
+        else
+        {
+            // add its downstream links to the linksToTest
+            for (size_t iLink = 0; iLink < (*it)->getConnectionAval()->m_LstTuyAv.size(); iLink++)
+            {
+                if (linksToTest.find((*it)->getConnectionAval()->m_LstTuyAv[iLink]) == linksToTest.end())
+                {
+                    linksToTest.insert((*it)->getConnectionAval()->m_LstTuyAv[iLink]);
+                }
+            }
+            // prevent infinite loops by flagging the link as already tested
+            testedLinks.insert(*it);
+        }
+        it = linksToTest.erase(it);
+    }
+    return GetExternalDownLink(testedLinks, linksToTest);
+}
+
+Tuyau* BriqueDeConnexion::GetAccessibleDownstreamLink(Tuyau *pTInt)
+{
+    std::set<Tuyau*> testedLinks, linksToTest;
+    linksToTest.insert(pTInt);
+    return GetExternalDownLink(testedLinks, linksToTest);
+}
+
 #ifdef USE_SYMUCORE
 void BriqueDeConnexion::CalculTempsParcours(double dbInstFinPeriode, SymuCore::MacroType * pMacroType, double dbPeriodDuration, bool bPollutantEmissionComputation)
 {

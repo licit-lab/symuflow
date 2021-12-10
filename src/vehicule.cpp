@@ -256,6 +256,8 @@ Vehicule::Vehicule
 
     m_bAlreadyRerouted=false;
 
+    m_bNoKnownDestination = false;
+
     InitChgtVoie();
 }
 
@@ -380,6 +382,8 @@ Vehicule::Vehicule
     m_pNextTuyauMeso = other.m_pNextTuyauMeso;
 
     m_bAlreadyRerouted=other.m_bAlreadyRerouted;
+
+    m_bNoKnownDestination = other.m_bNoKnownDestination;
 
 #ifdef USE_SYMUCOM
 	m_pConnectedVehicle = other.m_pConnectedVehicle;
@@ -534,6 +538,8 @@ Vehicule::Vehicule
     InitChgtVoie();
 
     m_bAlreadyRerouted=false;
+
+    m_bNoKnownDestination = false;
 
 #ifdef USE_SYMUCOM
     m_pConnectedVehicle = NULL;
@@ -1051,6 +1057,11 @@ double Vehicule::GetLigneDeFeu(VoieMicro * pVoiePrev, Connexion * pCnx, Tuyau * 
             dbLdF = mapCoeffs[NumVoieNext]->m_dbLigneFeu;
     }
     return dbLdF;
+}
+
+void Vehicule::SetNoKnownDestination(bool bNoKnownDestination)
+{
+    m_bNoKnownDestination = bNoKnownDestination;
 }
 
 void Trace(Vehicule * pVeh, double dbInstant, char * message)
@@ -2741,6 +2752,39 @@ Tuyau* Vehicule::CalculNextTuyau
                 return m_pNextTuyau;
             }
 
+    if (this->m_bNoKnownDestination)
+    {
+        // Cas des véhicules EGO dans EPiCAM par exemple. Dans ce cas, on ne sait pas où le véhicule va aller. Pour 
+        // limiter les cas d'arrêt du véhicule égo aux frontières entre les tronçons, on fait au mieux
+        // en prenant le premier tronçon aval venu plutôt que bloquer le véhicule (pour éviter que les véhicules
+        // obstacles derrière lui ne pilent sans raison)
+
+        // prise en compte le cas où le tuyau est un tuyau interne (peut arriver lors de la création d'un véhicule en fin de trouçon qui arrive sur une brique
+        // dès le premier pas de temps...). Dans ce cas, on prend un tuyau non interne aval possible depuis le tronçon courant.
+        if (pTuyau->GetBriqueParente())
+        {
+            pNextTuyau = pTuyau->GetBriqueParente()->GetAccessibleDownstreamLink(pTuyau);
+
+            m_nextTuyaux[std::pair<double, Tuyau*>( dbInstant, pTuyau )] = pNextTuyau;
+            return pNextTuyau;
+        }
+        else
+        {
+            // on prend le premier tronçon aval venu (pas moyen de faire mieux)
+            if (pTuyau->GetCnxAssAv()->GetNbElAssAval() > 0)
+            {
+                pNextTuyau = pTuyau->GetCnxAssAv()->m_LstTuyAssAv[0];
+
+                m_nextTuyaux[std::pair<double, Tuyau*>( dbInstant, pTuyau )] = pNextTuyau;
+                return pNextTuyau;
+            }
+            else
+            {
+                return NULL;
+            }
+        }
+    }
+
     // -- Le comportement du flux est de type ITINERAIRE ou c'est un véhicule avec un itinéraire prédéfini --   
     if( m_pReseau->GetAffectationModule() || GetFleet() != m_pReseau->GetSymuViaFleet() )
     {
@@ -3323,6 +3367,18 @@ Voie* Vehicule::CalculNextVoie
                         m_pReseau->log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
                     }
                 }*/
+            }
+            else
+            {
+                // Cas des véhicules sans itinéraire/destination connue (cas d'EPiCAM par exemple).
+                // Dans ce cas, on utilise le nextTuyau pour limiter les "pilages" des véhicules EGO aux frontières entre tronçons.
+                // pas de raison de ne pas le faire non plus hors véhicule marqué comme sans destination connue, mais 
+                // par précaution, on préfère ne pas faire cette modification hors cas EPiCAM d'où ce if supplémentaire
+                if (this->m_bNoKnownDestination && m_pNextTuyau)
+                {
+                    pTS = m_pNextTuyau;
+                    pDest = pTS;
+                }
             }
         }
 
@@ -5708,6 +5764,8 @@ void Vehicule::serialize(Archive & ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(m_bDejaCalcule);
 
     ar & BOOST_SERIALIZATION_NVP(m_pTrip);
+
+    ar & BOOST_SERIALIZATION_NVP(m_bNoKnownDestination);
 
     // Don't save all attribute if we are in light save mode
     if (!m_pReseau->m_bLightSavingMode) {

@@ -9,6 +9,7 @@ VehicleToCreate::VehicleToCreate()
     m_VehicleId = -1;
     m_pFleet = NULL;
     m_pTrip = NULL;
+    m_bNoKnownDestination = false;
     m_dbInitialPosition = NONVAL_DOUBLE;
     m_dbInitialSpeed = NONVAL_DOUBLE;
     m_dbInitialAcceleration = NONVAL_DOUBLE;
@@ -19,6 +20,7 @@ VehicleToCreate::VehicleToCreate(int vehId, AbstractFleet * pFleet)
     m_VehicleId = vehId;
     m_pFleet = pFleet;
     m_pTrip = NULL;
+    m_bNoKnownDestination = false;
     m_dbInitialPosition = NONVAL_DOUBLE;
     m_dbInitialSpeed = NONVAL_DOUBLE;
     m_dbInitialAcceleration = NONVAL_DOUBLE;
@@ -46,6 +48,16 @@ Trip* VehicleToCreate::GetTrip()
 void VehicleToCreate::SetTrip(Trip * pTrip)
 {
     m_pTrip = pTrip;
+}
+
+void VehicleToCreate::SetNoKnownDestination(bool bNoKnownDestination)
+{
+    m_bNoKnownDestination = bNoKnownDestination;
+}
+
+bool VehicleToCreate::GetNoKnownDestination() const
+{
+    return m_bNoKnownDestination;
 }
 
 void VehicleToCreate::SetInitialPosition(double dbInitialPosition)
@@ -87,6 +99,7 @@ void VehicleToCreate::serialize(Archive& ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(m_VehicleId);
     //ar & BOOST_SERIALIZATION_NVP(m_pFleet);
     //ar & BOOST_SERIALIZATION_NVP(m_pTrip);
+    ar & BOOST_SERIALIZATION_NVP(m_bNoKnownDestination);
     ar & BOOST_SERIALIZATION_NVP(m_dbInitialPosition);
     ar & BOOST_SERIALIZATION_NVP(m_dbInitialSpeed);
     ar & BOOST_SERIALIZATION_NVP(m_dbInitialAcceleration);

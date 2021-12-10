@@ -27,6 +27,9 @@ public:
     Trip * GetTrip();
     void SetTrip(Trip * pTrip);
 
+    void SetNoKnownDestination(bool bNoKnownDestination);
+    bool GetNoKnownDestination() const;
+
     void SetInitialPosition(double dbInitialPosition);
     double GetInitialPosition() const;
 
@@ -41,6 +44,7 @@ protected:
     AbstractFleet * m_pFleet;
     Trip * m_pTrip;
 
+    bool m_bNoKnownDestination;
     double m_dbInitialPosition;
     double m_dbInitialSpeed;
     double m_dbInitialAcceleration;

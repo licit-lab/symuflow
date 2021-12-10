@@ -417,6 +417,8 @@ protected:
     double              m_dbInstDestinationReached;
     double              m_dbDestinationTimeStep;
 
+    bool                m_bNoKnownDestination;
+
     std::set<TankSensor*> m_lstReservoirs;      // Pour garder trace des reservoirs dans lequel se trouve le v�hicule afin de pouvoir mettre � jour les r�servoir lorsque le v�hicule est d�truit sans en ressortir
 
     int                 m_ExternalID;
@@ -549,6 +551,8 @@ virtual void        CalculVoiesPossibles(double dbInstant);
     Trip*       GetTrip();
     TripNode*   GetOrigine();
     TripNode*   GetDestination();
+
+    void        SetNoKnownDestination(bool bNoKnownDestination);
 
     // Passage à l'étape suivante du Trip
     void        MoveToNextLeg();

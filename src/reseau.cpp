@@ -1941,6 +1941,7 @@ void Reseau::AppendSideLinks(Tuyau * pLink, std::set<Tuyau*> & lstLinksToMicro,
             boost::shared_ptr<Vehicule> pCreatedVeh = pVehicleToCreate->GetFleet()->ActivateVehicle(m_dbInstSimu, pVehicleToCreate);
             if (pCreatedVeh != NULL)
             {
+                pCreatedVeh->SetNoKnownDestination(pVehicleToCreate->GetNoKnownDestination());
                 if (pVehicleToCreate->GetInitialPosition() != NONVAL_DOUBLE)
                 {
                     pCreatedVeh->SetPos(pVehicleToCreate->GetInitialPosition());
@@ -11379,6 +11380,7 @@ Voie* Reseau::GetVoieFromID(const std::string & sTuyauID, int NumVoie)
     pVehicle->SetTimeFraction(0);
     pVehicle->SetNumVoie(nVoie);
     pVehicle->SetType(pTV);
+    pVehicle->SetNoKnownDestination(true);
     pVehicle->SetInitialPosition(dbDst);
     pVehicle->SetInitialSpeed(dbSpeed);
     pVehicle->SetInitialAcceleration(dbAcceleration);

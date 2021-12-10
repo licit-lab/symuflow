@@ -148,9 +148,9 @@ SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymCreateVehicle(int networkId, char* origi
 SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymCreateVehicle(std::string sType, std::string sTroncon, int nVoie, double dbDst, double dbSpeed, double dbAcceleration);
 
 // Pilotage d'un véhicule
-SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymDriveVehicle(int nID, std::string sTroncon, int nVoie, double dbPos, bool bForce);
+SYMUBRUIT_EXPORT double SYMUBRUIT_CDECL SymDriveVehicle(int nID, std::string sTroncon, int nVoie, double dbPos, bool bForce);
 // For EPiCAM
-SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymDriveVehicle(int nID, std::string sTroncon, int nVoie, double dbPos, double dbSpeed, double dbAcceleration);
+SYMUBRUIT_EXPORT double SYMUBRUIT_CDECL SymDriveVehicle(int nID, std::string sTroncon, int nVoie, double dbPos, double dbSpeed, double dbAcceleration);
 
 // Modification d'un itinéraire d'un véhicule
 SYMUBRUIT_EXPORT int SYMUBRUIT_CDECL SymAlterRoute(int nIdVeh, char*  links[], int iLength);
