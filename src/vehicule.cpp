@@ -330,6 +330,7 @@ Vehicule::Vehicule
 
     m_dbDstParcourue = other.m_dbDstParcourue;
     m_nGhostRemain = other.m_nGhostRemain;
+    m_nGhostRemainInit = other.m_nGhostRemainInit;
     m_pGhostFollower = other.m_pGhostFollower;
     m_pGhostLeader = other.m_pGhostLeader;
     m_pGhostVoie = other.m_pGhostVoie;
@@ -501,6 +502,7 @@ Vehicule::Vehicule
     m_dbDstParcourue = 0;
 
     m_nGhostRemain = 0;			
+    m_nGhostRemainInit = 0;
     m_pGhostVoie = NULL;
     m_pVoieOld = NULL;
 
@@ -2012,6 +2014,8 @@ void Vehicule::SortieTrafic
             m_pReseau->m_pCoordTransf->Transform(1, &dbAbs, &dbOrd);
 
         Voie* pVoie0 = m_pVoie[0];
+        Voie * pGhostTargetLane = NULL;
+        double dbGhostRatioCompleteness = -1;
 
         double dbPos0 = std::max<double>(m_pPos[0], 0); // comment on peut avoir des positions négatives ici (scenario grand lyon SG): insertion à l'aide d'un SymCreateVehicle au niveau d'une connexion interne et le véhicule ne peut pas s'insérer à cause de la présence d'autres véhicules
 
@@ -2020,6 +2024,8 @@ void Vehicule::SortieTrafic
         {
             if( m_nGhostRemain > 0 && m_pGhostVoie)
             {
+                pGhostTargetLane = pVoie0;
+                dbGhostRatioCompleteness = (m_nGhostRemainInit - m_nGhostRemain) / (double)m_nGhostRemainInit;
                 pVoie0 = m_pGhostVoie;	// Voie du ghost
                 dbPos0 = dbPos0 * m_pGhostVoie->GetLength() / m_pVoie[0]->GetLength();	// Position du ghost
             }
@@ -2113,7 +2119,7 @@ void Vehicule::SortieTrafic
             {
                 NewellContext * pNewellContext = dynamic_cast<NewellContext*>(GetCarFollowing()->GetCurrentContext());
                 pXMLDocTrafic->AddTrajectoire(m_nID, pCurrentLink, ssTuyau, ssTuyauEx, ssNextTuyauEx, nNumVoie, dbAbs, dbOrd, dbHaut, dbPos0, m_pVit[0], m_pAcc[0], pNewellContext ? pNewellContext->GetDeltaN() : -1, sTypeVehicule, dbVitMax, dbLongueur, sLib, nIDVehLeader, nCurrentLoad, m_bTypeChgtVoie && bChgtVoieDebug, m_TypeChgtVoie, m_bVoieCible && bChgtVoieDebug, m_nVoieCible,
-                    m_bPi && bChgtVoieDebug, m_dbPi, m_bPhi && bChgtVoieDebug, m_dbPhi, m_bRand && bChgtVoieDebug, m_dbRand, m_bDriven, strDriveState, m_VehiculeDepasse.get() != NULL, m_bRegimeFluideLeader, additionalAttributes);
+                    m_bPi && bChgtVoieDebug, m_dbPi, m_bPhi && bChgtVoieDebug, m_dbPhi, m_bRand && bChgtVoieDebug, m_dbRand, m_bDriven, strDriveState, m_VehiculeDepasse.get() != NULL, m_bRegimeFluideLeader, pGhostTargetLane ? pGhostTargetLane->GetNum()+1 : -1, dbGhostRatioCompleteness, additionalAttributes);
             }
         }
         else
@@ -5736,6 +5742,7 @@ void Vehicule::serialize(Archive & ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(m_pDF);
 
     ar & BOOST_SERIALIZATION_NVP(m_nGhostRemain);
+    ar & BOOST_SERIALIZATION_NVP(m_nGhostRemainInit);
     ar & BOOST_SERIALIZATION_NVP(m_dbTpsArretRestant);
     ar & BOOST_SERIALIZATION_NVP(m_nVoieInsertion);
 

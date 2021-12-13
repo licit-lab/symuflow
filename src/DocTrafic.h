@@ -174,7 +174,7 @@ class DocTrafic
     
     // Ajout des donn�es de la trajectoire d'un v�hicule � l'instant consid�r�
     virtual void AddTrajectoire(int nID, Tuyau * pTuyau, const std::string &  strTuyau, const std::string &  strTuyauEx, const std::string &  strNextTuyauEx, int nNumVoie, double dbAbs, double dbOrd, double dbZ, double dbAbsCur, double dbVit, double dbAcc, double dbDeltaN, const std::string &  sTypeVehicule, double dbVitMax, double dbLongueur, const std::string &  sLib, int nIDVehLeader, int nCurrentLoad,
-        bool bTypeChgtVoie, TypeChgtVoie eTypeChgtVoie, bool bVoieCible, int nVoieCible, bool bPi, double dbPi, bool bPhi, double dbPhi, bool bRand, double dbRand, bool bDriven, const std::string &  strDriveState, bool bDepassement, bool bRegimeFluide, const std::map<std::string, std::string> & additionalAttributes) = 0;
+        bool bTypeChgtVoie, TypeChgtVoie eTypeChgtVoie, bool bVoieCible, int nVoieCible, bool bPi, double dbPi, bool bPhi, double dbPhi, bool bRand, double dbRand, bool bDriven, const std::string &  strDriveState, bool bDepassement, bool bRegimeFluide, int nGhostTargetlane, double dbGhostRatioCompleteness, const std::map<std::string, std::string> & additionalAttributes) = 0;
 
     // Ajout des donn�es du flux d'un v�hicule � l'instant consid�r�
     virtual void AddStream(int nID, const std::string &  strTuyau, const std::string &  strTuyauEx) = 0;

@@ -360,6 +360,7 @@ protected:
 
     // Gestion des ghosts suite à un changement de voie
     int			m_nGhostRemain;			// Nombre de pas de temps restant du ghost
+    int         m_nGhostRemainInit;     // Valeur initiale de m_nGhostRemain (permet de calculer un état d'avancement du changement de voie ghost)
     boost::weak_ptr<Vehicule>	m_pGhostFollower;		// Véhicule suivant dont le ghost est le leader
     boost::weak_ptr<Vehicule>	m_pGhostLeader;			// Véhicule leader du ghost
     Voie*		m_pGhostVoie;			// Voie sur laquelle se trouve le ghost (voie d'origine du véhicule qui a changé de voie)
@@ -656,7 +657,7 @@ virtual void        CalculVoiesPossibles(double dbInstant);
 
     // Gestion des ghosts
     int			GetGhostRemain()	{return	m_nGhostRemain;}
-    void        SetGhostRemain(int nGhostRemain) {m_nGhostRemain = nGhostRemain;}
+    void        SetGhostRemain(int nGhostRemain) {m_nGhostRemain = nGhostRemain; m_nGhostRemainInit = nGhostRemain;}
     boost::shared_ptr<Vehicule>	GetGhostFollower()	{return m_pGhostFollower.lock();}
     void        SetGhostFollower(boost::shared_ptr<Vehicule> pGhostFollower) {m_pGhostFollower = pGhostFollower;}
     boost::shared_ptr<Vehicule>	GetGhostLeader()	{return m_pGhostLeader.lock();}
