@@ -76,6 +76,7 @@ public:
     virtual bool    GetTuyauxInternes( Tuyau *pTAm, Tuyau *pTAv, std::vector<Tuyau*> &dqTuyaux) = 0;
 	virtual bool    GetTuyauxInternes( Tuyau *pTAm, int nVAm, Tuyau *pTAv, int nVAv, std::vector<Tuyau*> &dqTuyaux) = 0;
     virtual bool    GetTuyauxInternesRestants( TuyauMicro *pTInt, Tuyau *pTAv, std::vector<Tuyau*> &dqTuyaux) = 0;
+    virtual Tuyau* GetAccessibleDownstreamLink(Tuyau *pTInt);
     virtual std::set<Tuyau*> GetAllTuyauxInternes( Tuyau *pTAm, Tuyau *pTAv ) = 0;
 
     double      GetVitMax(){return m_dbVitMax;};

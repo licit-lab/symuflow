@@ -418,7 +418,7 @@ void JSONDocTrafic::AddCellSimu(int nID, double dbConc, double dbDebit, double d
 
 // Ajout des donn�es de la trajectoire d'un v�hicule � l'instant consid�r�
 void JSONDocTrafic::AddTrajectoire(int nID, Tuyau * pTuyau, const std::string & strTuyau, const std::string & strTuyauEx, const std::string & strNextTuyauEx, int nNumVoie, double dbAbs, double dbOrd, double dbZ, double dbAbsCur, double dbVit, double dbAcc, double dbDeltaN, const std::string & sTypeVehicule, double dbVitMax, double dbLongueur, const std::string & sLib, int nIDVehLeader, int nCurrentLoad, bool bTypeChgtVoie, TypeChgtVoie eTypeChgtVoie,
-    bool bVoieCible, int nVoieCible, bool bPi, double dbPi, bool bPhi, double dbPhi, bool bRand, double dbRand, bool bDriven, const std::string & strDriveState, bool bDepassement, bool bRegimeFluide, const std::map<std::string, std::string> & additionalAttributes) 
+    bool bVoieCible, int nVoieCible, bool bPi, double dbPi, bool bPhi, double dbPhi, bool bRand, double dbRand, bool bDriven, const std::string & strDriveState, bool bDepassement, bool bRegimeFluide, int nGhostTargetlane, double dbGhostRatioCompleteness, const std::map<std::string, std::string> & additionalAttributes) 
 {
     rapidjson::Document::AllocatorType& allocator = m_TrafState.GetAllocator();
 

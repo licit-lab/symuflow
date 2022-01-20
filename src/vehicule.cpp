@@ -256,6 +256,8 @@ Vehicule::Vehicule
 
     m_bAlreadyRerouted=false;
 
+    m_bNoKnownDestination = false;
+
     InitChgtVoie();
 }
 
@@ -328,6 +330,7 @@ Vehicule::Vehicule
 
     m_dbDstParcourue = other.m_dbDstParcourue;
     m_nGhostRemain = other.m_nGhostRemain;
+    m_nGhostRemainInit = other.m_nGhostRemainInit;
     m_pGhostFollower = other.m_pGhostFollower;
     m_pGhostLeader = other.m_pGhostLeader;
     m_pGhostVoie = other.m_pGhostVoie;
@@ -380,6 +383,8 @@ Vehicule::Vehicule
     m_pNextTuyauMeso = other.m_pNextTuyauMeso;
 
     m_bAlreadyRerouted=other.m_bAlreadyRerouted;
+
+    m_bNoKnownDestination = other.m_bNoKnownDestination;
 
 #ifdef USE_SYMUCOM
 	m_pConnectedVehicle = other.m_pConnectedVehicle;
@@ -497,6 +502,7 @@ Vehicule::Vehicule
     m_dbDstParcourue = 0;
 
     m_nGhostRemain = 0;			
+    m_nGhostRemainInit = 0;
     m_pGhostVoie = NULL;
     m_pVoieOld = NULL;
 
@@ -534,6 +540,8 @@ Vehicule::Vehicule
     InitChgtVoie();
 
     m_bAlreadyRerouted=false;
+
+    m_bNoKnownDestination = false;
 
 #ifdef USE_SYMUCOM
     m_pConnectedVehicle = NULL;
@@ -1051,6 +1059,11 @@ double Vehicule::GetLigneDeFeu(VoieMicro * pVoiePrev, Connexion * pCnx, Tuyau * 
             dbLdF = mapCoeffs[NumVoieNext]->m_dbLigneFeu;
     }
     return dbLdF;
+}
+
+void Vehicule::SetNoKnownDestination(bool bNoKnownDestination)
+{
+    m_bNoKnownDestination = bNoKnownDestination;
 }
 
 void Trace(Vehicule * pVeh, double dbInstant, char * message)
@@ -2001,6 +2014,8 @@ void Vehicule::SortieTrafic
             m_pReseau->m_pCoordTransf->Transform(1, &dbAbs, &dbOrd);
 
         Voie* pVoie0 = m_pVoie[0];
+        Voie * pGhostTargetLane = NULL;
+        double dbGhostRatioCompleteness = -1;
 
         double dbPos0 = std::max<double>(m_pPos[0], 0); // comment on peut avoir des positions négatives ici (scenario grand lyon SG): insertion à l'aide d'un SymCreateVehicle au niveau d'une connexion interne et le véhicule ne peut pas s'insérer à cause de la présence d'autres véhicules
 
@@ -2009,6 +2024,8 @@ void Vehicule::SortieTrafic
         {
             if( m_nGhostRemain > 0 && m_pGhostVoie)
             {
+                pGhostTargetLane = pVoie0;
+                dbGhostRatioCompleteness = (m_nGhostRemainInit - m_nGhostRemain) / (double)m_nGhostRemainInit;
                 pVoie0 = m_pGhostVoie;	// Voie du ghost
                 dbPos0 = dbPos0 * m_pGhostVoie->GetLength() / m_pVoie[0]->GetLength();	// Position du ghost
             }
@@ -2102,7 +2119,7 @@ void Vehicule::SortieTrafic
             {
                 NewellContext * pNewellContext = dynamic_cast<NewellContext*>(GetCarFollowing()->GetCurrentContext());
                 pXMLDocTrafic->AddTrajectoire(m_nID, pCurrentLink, ssTuyau, ssTuyauEx, ssNextTuyauEx, nNumVoie, dbAbs, dbOrd, dbHaut, dbPos0, m_pVit[0], m_pAcc[0], pNewellContext ? pNewellContext->GetDeltaN() : -1, sTypeVehicule, dbVitMax, dbLongueur, sLib, nIDVehLeader, nCurrentLoad, m_bTypeChgtVoie && bChgtVoieDebug, m_TypeChgtVoie, m_bVoieCible && bChgtVoieDebug, m_nVoieCible,
-                    m_bPi && bChgtVoieDebug, m_dbPi, m_bPhi && bChgtVoieDebug, m_dbPhi, m_bRand && bChgtVoieDebug, m_dbRand, m_bDriven, strDriveState, m_VehiculeDepasse.get() != NULL, m_bRegimeFluideLeader, additionalAttributes);
+                    m_bPi && bChgtVoieDebug, m_dbPi, m_bPhi && bChgtVoieDebug, m_dbPhi, m_bRand && bChgtVoieDebug, m_dbRand, m_bDriven, strDriveState, m_VehiculeDepasse.get() != NULL, m_bRegimeFluideLeader, pGhostTargetLane ? pGhostTargetLane->GetNum()+1 : -1, dbGhostRatioCompleteness, additionalAttributes);
             }
         }
         else
@@ -2741,6 +2758,39 @@ Tuyau* Vehicule::CalculNextTuyau
                 return m_pNextTuyau;
             }
 
+    if (this->m_bNoKnownDestination)
+    {
+        // Cas des véhicules EGO dans EPiCAM par exemple. Dans ce cas, on ne sait pas où le véhicule va aller. Pour 
+        // limiter les cas d'arrêt du véhicule égo aux frontières entre les tronçons, on fait au mieux
+        // en prenant le premier tronçon aval venu plutôt que bloquer le véhicule (pour éviter que les véhicules
+        // obstacles derrière lui ne pilent sans raison)
+
+        // prise en compte le cas où le tuyau est un tuyau interne (peut arriver lors de la création d'un véhicule en fin de trouçon qui arrive sur une brique
+        // dès le premier pas de temps...). Dans ce cas, on prend un tuyau non interne aval possible depuis le tronçon courant.
+        if (pTuyau->GetBriqueParente())
+        {
+            pNextTuyau = pTuyau->GetBriqueParente()->GetAccessibleDownstreamLink(pTuyau);
+
+            m_nextTuyaux[std::pair<double, Tuyau*>( dbInstant, pTuyau )] = pNextTuyau;
+            return pNextTuyau;
+        }
+        else
+        {
+            // on prend le premier tronçon aval venu (pas moyen de faire mieux)
+            if (pTuyau->GetCnxAssAv()->GetNbElAssAval() > 0)
+            {
+                pNextTuyau = pTuyau->GetCnxAssAv()->m_LstTuyAssAv[0];
+
+                m_nextTuyaux[std::pair<double, Tuyau*>( dbInstant, pTuyau )] = pNextTuyau;
+                return pNextTuyau;
+            }
+            else
+            {
+                return NULL;
+            }
+        }
+    }
+
     // -- Le comportement du flux est de type ITINERAIRE ou c'est un véhicule avec un itinéraire prédéfini --   
     if( m_pReseau->GetAffectationModule() || GetFleet() != m_pReseau->GetSymuViaFleet() )
     {
@@ -2833,9 +2883,17 @@ Tuyau* Vehicule::CalculNextTuyau
             // on cherche le tuyau de l'itinéraire qui précéde la brique
             int lastTuyIdx = GetItineraireIndex(isTuyauAmont, pTuyau->GetBriqueParente());
 
-            assert(lastTuyIdx != -1); // de toute façon, ca va planter à pTuyau->GetCnxAssAv(); si pTuyau reste un tuyau interne
-
-            pTuyau = (TuyauMicro*)m_pTrip->GetFullPath()->at(lastTuyIdx);
+            if(lastTuyIdx != -1)
+            {
+                pTuyau = (TuyauMicro*)m_pTrip->GetFullPath()->at(lastTuyIdx);
+            }
+            else
+            {
+                // Cas du pilotage externe du véhicule (par EPiCAM par exemple) qui conduit le véhicule à l'interieur d'un CAF sans être passé
+                // par un tronçon amont à ce CAF : plutôt que de planter sur l'ancien assert, on renvoie NULL (on ne ocnnait pas le tuyau suivant),
+                // ce qui n'est pas très grave dans ce mode.
+                return NULL;
+            }
         }
 
         // Recherche des élements correspondants sur réseau d'affectation
@@ -3315,6 +3373,18 @@ Voie* Vehicule::CalculNextVoie
                         m_pReseau->log() << Logger::Info; // rebascule en mode INFO pour ne pas avoir à reprendre tous les appels aux log en précisant que c'est des INFO. à supprimer si on reprend tous les appels au log.
                     }
                 }*/
+            }
+            else
+            {
+                // Cas des véhicules sans itinéraire/destination connue (cas d'EPiCAM par exemple).
+                // Dans ce cas, on utilise le nextTuyau pour limiter les "pilages" des véhicules EGO aux frontières entre tronçons.
+                // pas de raison de ne pas le faire non plus hors véhicule marqué comme sans destination connue, mais 
+                // par précaution, on préfère ne pas faire cette modification hors cas EPiCAM d'où ce if supplémentaire
+                if (this->m_bNoKnownDestination && m_pNextTuyau)
+                {
+                    pTS = m_pNextTuyau;
+                    pDest = pTS;
+                }
             }
         }
 
@@ -4006,7 +4076,40 @@ void Vehicule::FinCalculTrafic
         if( m_nGhostRemain > 0)	// Un ghost existe t'il ?
         {
             m_nGhostRemain--;	// Il se rapproche de sa mort...
-            if( m_nGhostRemain == 0 || m_pTuyau[0] != m_pTuyau[1] ) // Il est mort (de sa belle mort ou par changement de tronçon), on ne le prend plus en compte
+            bool bGhostTermination = m_nGhostRemain == 0;
+            if (!bGhostTermination && m_pTuyau[0] != m_pTuyau[1])
+            {
+                bGhostTermination = true;
+                // Si le véhicule change de tronçon, on doit pouvoir poursuivre la procédure ghost si on est capable de faire
+                // le lien entre les deux voies correspondantes sur le tronçon courant et sur le nouveau tronçon. Pour celà, on
+                // fait l'hypothèse que la nouvelle voie m_pVoie[0] est l'équivalent de m_pVoie[1] dans le nouveau tronçon,
+                // et on vérifie que l'équivalent de m_pGhostVoie existe dans le nouveau tronçon (voie accessible depuis m_pGhostVoie).
+                // note : si le véhicule saute un tronçon pendant le pas de temps, on abandonne (pas grave pour  EPiCAM car très court pas de temps). 
+                if (m_pTuyau[1] && m_pTuyau[0] && m_pVoie[1] && m_pVoie[0])
+                {
+                    int nLaneOffset = m_pVoie[1]->GetNum() - m_pGhostVoie->GetNum();
+                    int iCandidateLaneNum = m_pVoie[0]->GetNum() - nLaneOffset;
+                    if (m_pTuyau[0]->GetLstLanes().size() > iCandidateLaneNum && iCandidateLaneNum >= 0)
+                    {
+                        Voie * pNewGhostVoieCandidate = m_pTuyau[0]->GetVoie(iCandidateLaneNum);
+                        // vérification de la connexion entre la précédente voie ghost et la nouvelle :
+                        // - on utilise les mouvements autorisés pour les connectionx ponctuelles (le répartiteur
+                        // étant le cas le plus courant à traiter pour EPiCAM)
+                        // - pour les CAFs, les mouvements internes étant représentés par un tronçon à une voie, on
+                        // peut les ignorer ici (si le changement de voie n'est pas terminé à l'entrée du CAF, c'est mort de toute façon)
+                        // - on traite par contre le cas des changements de voie s'il y a un giratoire au départ ou à l'arrivée ou aux deux
+                        // (pas de mouvements autorisés définis explicitement car tous le sont) 
+                        if( (m_pTuyau[0]->GetBriqueParente() && m_pTuyau[0]->GetBriqueParente()->GetType() == 'G') ||
+                            (m_pTuyau[1]->GetBriqueParente() && m_pTuyau[1]->GetBriqueParente()->GetType() == 'G') ||
+                            m_pTuyau[1]->GetCnxAssAv()->IsMouvementAutorise(m_pGhostVoie, pNewGhostVoieCandidate, GetType(), NULL))
+                        {
+                            m_pGhostVoie = pNewGhostVoieCandidate;
+                            bGhostTermination = false;
+                        }
+                    }
+                }
+            }
+            if( bGhostTermination ) // Il est mort (de sa belle mort ou par changement de tronçon), on ne le prend plus en compte
             {
                 if( m_pGhostFollower.lock() )
                 {
@@ -5018,7 +5121,7 @@ void Vehicule::UpdateVitesseReg(double dbInst)
     }
 }
 
-double Vehicule::Drive(TuyauMicro *pT, int nVoie, double dbPos, bool bForce)
+double Vehicule::Drive(TuyauMicro *pT, int nVoie, double dbPos, double * dbSpeed, double * dbAcceleration, bool bForce)
 {
     int result = 1;
 
@@ -5077,6 +5180,15 @@ double Vehicule::Drive(TuyauMicro *pT, int nVoie, double dbPos, bool bForce)
             // Ou pas car faux... du coup on ne modifie pas la vitesse dans ce cas et on garde la vitesse calculée : OK pour SymuGame pour la reproduction d'une simulation
         }
         m_pAcc[0] = (m_pVit[0] - m_pVit[1])/m_pReseau->GetTimeStep();
+    }
+
+    if (dbSpeed != NULL)
+    {
+        m_pVit[0] = *dbSpeed;
+    }
+    if (dbAcceleration != NULL)
+    {
+        m_pAcc[0] = *dbAcceleration;
     }
 
     this->m_bDejaCalcule = true;
@@ -5663,6 +5775,7 @@ void Vehicule::serialize(Archive & ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(m_pDF);
 
     ar & BOOST_SERIALIZATION_NVP(m_nGhostRemain);
+    ar & BOOST_SERIALIZATION_NVP(m_nGhostRemainInit);
     ar & BOOST_SERIALIZATION_NVP(m_dbTpsArretRestant);
     ar & BOOST_SERIALIZATION_NVP(m_nVoieInsertion);
 
@@ -5691,6 +5804,8 @@ void Vehicule::serialize(Archive & ar, const unsigned int version)
     ar & BOOST_SERIALIZATION_NVP(m_bDejaCalcule);
 
     ar & BOOST_SERIALIZATION_NVP(m_pTrip);
+
+    ar & BOOST_SERIALIZATION_NVP(m_bNoKnownDestination);
 
     // Don't save all attribute if we are in light save mode
     if (!m_pReseau->m_bLightSavingMode) {

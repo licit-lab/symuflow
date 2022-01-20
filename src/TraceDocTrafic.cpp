@@ -500,11 +500,11 @@ void TraceDocTrafic::AddCellSimu(int nID, double dbConc, double dbDebit, double 
 }
 
 void TraceDocTrafic::AddTrajectoire(int nID, Tuyau * pTuyau, const std::string & strTuyau, const std::string & strTuyauEx, const std::string & strNextTuyauEx, int nNumVoie, double dbAbs, double dbOrd, double dbZ, double dbAbsCur, double dbVit, double dbAcc, double dbDeltaN, const std::string & sTypeVehicule, double dbVitMax, double dbLongueur, const std::string & sLib, int nIDVehLeader, int nCurrentLoad, bool bTypeChgtVoie, TypeChgtVoie eTypeChgtVoie,
-    bool bVoieCible, int nVoieCible, bool bPi, double dbPi, bool bPhi, double dbPhi, bool bRand, double dbRand, bool bDriven, const std::string & strDriveState, bool bDepassement, bool bRegimeFluide, const std::map<std::string, std::string> & additionalAttributes)
+    bool bVoieCible, int nVoieCible, bool bPi, double dbPi, bool bPhi, double dbPhi, bool bRand, double dbRand, bool bDriven, const std::string & strDriveState, bool bDepassement, bool bRegimeFluide, int nGhostTargetlane, double dbGhostRatioCompleteness, const std::map<std::string, std::string> & additionalAttributes)
 {
     for(size_t iDoc = 0; iDoc < m_LstDocTrafic.size(); iDoc++)
     {
-        m_LstDocTrafic[iDoc]->AddTrajectoire(nID, pTuyau, strTuyau, strTuyauEx, strNextTuyauEx, nNumVoie, dbAbs, dbOrd, dbZ, dbAbsCur, dbVit, dbAcc, dbDeltaN, sTypeVehicule, dbVitMax, dbLongueur, sLib, nIDVehLeader, nCurrentLoad, bTypeChgtVoie, eTypeChgtVoie, bVoieCible, nVoieCible, bPi, dbPi, bPhi, dbPhi, bRand, dbRand, bDriven, strDriveState, bDepassement, bRegimeFluide, additionalAttributes);
+        m_LstDocTrafic[iDoc]->AddTrajectoire(nID, pTuyau, strTuyau, strTuyauEx, strNextTuyauEx, nNumVoie, dbAbs, dbOrd, dbZ, dbAbsCur, dbVit, dbAcc, dbDeltaN, sTypeVehicule, dbVitMax, dbLongueur, sLib, nIDVehLeader, nCurrentLoad, bTypeChgtVoie, eTypeChgtVoie, bVoieCible, nVoieCible, bPi, dbPi, bPhi, dbPhi, bRand, dbRand, bDriven, strDriveState, bDepassement, bRegimeFluide, nGhostTargetlane, dbGhostRatioCompleteness, additionalAttributes);
     }
 }
 
