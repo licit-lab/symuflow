@@ -120,7 +120,7 @@ void SymuViaFleet::FinCalculTrafic(Vehicule * pVeh)
     }
 }
 
-void SymuViaFleet::ActivateVehicle(double dbInstant, VehicleToCreate * pVehicleToCreate)
+boost::shared_ptr<Vehicule> SymuViaFleet::ActivateVehicle(double dbInstant, VehicleToCreate * pVehicleToCreate)
 {
     SymuViaVehicleToCreate * pVehicle = (SymuViaVehicleToCreate*) pVehicleToCreate;
     boost::shared_ptr<Vehicule> pVeh = pVehicle->GetOrigin()->GenerateVehicle(pVehicle->GetVehicleID(), pVehicle->GetType(), pVehicle->GetNumVoie(), dbInstant, pVehicle->GetTimeFraction(),
@@ -134,7 +134,7 @@ void SymuViaFleet::ActivateVehicle(double dbInstant, VehicleToCreate * pVehicleT
 		if (m_pNetwork->GetControlZoneManagement() )
 			m_pNetwork->GetControlZoneManagement()->CheckAndRerouteVehicle(pVeh);
     }
-
+    return pVeh;
 }
 
 

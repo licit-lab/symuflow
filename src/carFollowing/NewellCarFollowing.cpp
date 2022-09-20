@@ -566,7 +566,8 @@ void NewellCarFollowing::ApplyLaneChange(VoieMicro * pVoieOld, VoieMicro * pVoie
             {
                 dbThisDeltaN = ((NewellContext*)GetCurrentContext())->GetDeltaN();
             }
-            int nGhostRemain = (int)ceil( (1- std::min<double>(dbDeltaN, dbThisDeltaN) )*m_pNetwork->GetChgtVoieGhostDurationMax() + std::min<double>(dbDeltaN, dbThisDeltaN)*m_pNetwork->GetChgtVoieGhostDurationMin()) ;				// Initialisation du compteur de vie du ghost	
+            double dbGhostRemainingDuration = (1- std::min<double>(dbDeltaN, dbThisDeltaN) )*m_pNetwork->GetChgtVoieGhostDurationMax() + std::min<double>(dbDeltaN, dbThisDeltaN)*m_pNetwork->GetChgtVoieGhostDurationMin();
+            int nGhostRemain = (int)ceil(dbGhostRemainingDuration / m_pNetwork->GetTimeStep());				// Initialisation du compteur de vie du ghost	
             m_pVehicle->SetGhostRemain(nGhostRemain);
             if( nGhostRemain > 0)
             {

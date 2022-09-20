@@ -2,6 +2,7 @@
 #include "XMLDocTrafic.h"
 
 #include "reseau.h"
+#include "ConnectionPonctuel.h"
 #include "symUtil.h"
 #include "SystemUtil.h"
 #include "TimeUtil.h"
@@ -1441,6 +1442,33 @@ void XMLDocTrafic::AddTroncon(const std::string & strLibelle, Point* pPtAm, Poin
 	    xmlnodeCell->setAttributeNode(xmlattr);
     }
 
+    // For EPiCAM : added the previous and next links in SYM_TRONCON nodes to help identify the CAF's internal trajectory a vehicle is on
+    std::string upstreamLinkNames, downstreamLinkNames;
+    for (size_t iDownLink = 0; iDownLink < pTuyau->getConnectionAval()->m_LstTuyAv.size(); iDownLink++)
+    {
+        if (iDownLink > 0)
+        {
+            downstreamLinkNames += " ";
+        }
+        downstreamLinkNames += pTuyau->getConnectionAval()->m_LstTuyAv[iDownLink]->GetLabel();
+    }
+    for (size_t iUpLink = 0; iUpLink < pTuyau->getConnectionAmont()->m_LstTuyAm.size(); iUpLink++)
+    {
+        if (iUpLink > 0)
+        {
+            upstreamLinkNames += " ";
+        }
+        upstreamLinkNames += pTuyau->getConnectionAmont()->m_LstTuyAm[iUpLink]->GetLabel();
+    }
+
+    xmlattr = pXMLDoc->createAttribute( XS("troncons_amont") );
+    xmlattr->setValue(XS(upstreamLinkNames.c_str()));
+    xmlnodeCell->setAttributeNode(xmlattr);
+
+    xmlattr = pXMLDoc->createAttribute( XS("troncons_aval") );
+    xmlattr->setValue(XS(downstreamLinkNames.c_str()));
+    xmlnodeCell->setAttributeNode(xmlattr);
+
 	// Append		
 	m_XmlNodeTroncons->appendChild( xmlnodeCell );		
 }
@@ -2204,7 +2232,7 @@ void XMLDocTrafic::AddCellSimu(int nID, double dbConc, double dbDebit, double db
 // Ajout des données de la trajectoire d'un véhicule à l'instant considéré
 void XMLDocTrafic::AddTrajectoire(int nID, Tuyau * pTuyau, const std::string & strTuyau, const std::string & strTuyauEx, const std::string & strNextTuyauEx, int nNumVoie, double dbAbs, double dbOrd, double dbZ, double dbAbsCur, double dbVit, double dbAcc, double dbDeltaN, const std::string & sTypeVehicule, double dbVitMax, double dbLongueur, const std::string & sLib, int nIDVehLeader, int nCurrentLoad,
     bool bTypeChgtVoie, TypeChgtVoie eTypeChgtVoie, bool bVoieCible, int nVoieCible, bool bPi, double dbPi, bool bPhi, double dbPhi, bool bRand, double dbRand,
-    bool bDriven, const std::string & strDriveState, bool bDepassement, bool bRegimeFluide, const std::map<std::string, std::string> & additionalAttributes)
+    bool bDriven, const std::string & strDriveState, bool bDepassement, bool bRegimeFluide, int nGhostTargetlane, double dbGhostRatioCompleteness, const std::map<std::string, std::string> & additionalAttributes)
 {
 	DOMElement* xmlnodeVeh;
 	DOMAttr* xmlattr;
@@ -2340,6 +2368,13 @@ void XMLDocTrafic::AddTrajectoire(int nID, Tuyau * pTuyau, const std::string & s
     if(nCurrentLoad != -1)
     {
         xmlnodeVeh->setAttribute(XS("charge"), XS(SystemUtil::ToString(nCurrentLoad).c_str()));
+    }
+
+    // Added ghost information for EPiCAM
+    if (nGhostTargetlane != -1)
+    {
+        xmlnodeVeh->setAttribute(XS("voie_ghost"), XS(SystemUtil::ToString(nGhostTargetlane).c_str()));
+        xmlnodeVeh->setAttribute(XS("ghost_pct"), XS(SystemUtil::ToString(3, dbGhostRatioCompleteness).c_str()));
     }
 
     // Ajout des infos supplémentaires le cas échéant

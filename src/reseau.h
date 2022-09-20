@@ -958,7 +958,8 @@ public:
         int								CreateVehicle(const std::string & sType, const std::string & sEntree, const std::string & sSortie, int nVoie, double dbt, std::deque<std::string> * pIti, const std::string & junctionName, int externalUserID = -1, std::string nextRouteId = std::string());
         int                             CreatePublicTransportUser(const std::string & startStop, const std::string & endStop, const std::string & lineName, double dbt, int externalUserID);
 		int								DeleteVehicle(int nID);
-		double							DriveVehicle(int nID, const std::string & sTroncon, int nVoie, double dbPos, bool bForce);
+		double							DriveVehicle(int nID, const std::string & sTroncon, int nVoie, double dbPos, bool bForce,
+                                                     double * dbSpeed = NULL, double * dbAcceleration = NULL);
 		int								AlterRoute(int nIdVeh, const std::deque<std::string> & dqLinks);
 
         int                             SetRoutes(const std::string & originId, const std::string & destinationId, const std::string & typeVeh, std::vector<std::pair<double, std::vector<std::string> > > & routes);
@@ -980,6 +981,9 @@ public:
 
         // Création sur ordre d'un véhicule pour un trip et une flotte donnés
         int                             CreateVehicle(Trip * pTrip, AbstractFleet * pFleet);
+
+        // Création sur ordre d'un véhicule sur un tronçon, sans origine ou destination particulière (pour EPiCAM)
+        int                             CreateVehicle(const std::string & vehicleType, Tuyau * pLink, int nVoie, double dbDst, double dbSpeed, double dbAcceleration);
 
         // Ajout/Suppression d'un point de livraison à une tournée existante
         int                             AddDeliveryPoint(Trip * pTournee, int vehiculeId, PointDeLivraison * pPoint, int positionIndex, int dechargement, int chargement);

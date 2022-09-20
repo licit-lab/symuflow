@@ -95,7 +95,7 @@ public:
     virtual void ActivateVehicles(double dbInstant, double dbTimeStep);
 
     // Activation d'un véhicule sur ordre : à spécialiser dans les différentes flottes
-    virtual void ActivateVehicle(double dbInstant, VehicleToCreate * pVehicleToCreate);
+    virtual boost::shared_ptr<Vehicule> ActivateVehicle(double dbInstant, VehicleToCreate * pVehicleToCreate);
 
     // Test de l'atteinte de la destination
     virtual bool IsCurrentLegDone(Vehicule * pVehicle, TripLeg * pCurrentLeg,

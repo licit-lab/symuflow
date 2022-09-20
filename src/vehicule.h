@@ -360,6 +360,7 @@ protected:
 
     // Gestion des ghosts suite à un changement de voie
     int			m_nGhostRemain;			// Nombre de pas de temps restant du ghost
+    int         m_nGhostRemainInit;     // Valeur initiale de m_nGhostRemain (permet de calculer un état d'avancement du changement de voie ghost)
     boost::weak_ptr<Vehicule>	m_pGhostFollower;		// Véhicule suivant dont le ghost est le leader
     boost::weak_ptr<Vehicule>	m_pGhostLeader;			// Véhicule leader du ghost
     Voie*		m_pGhostVoie;			// Voie sur laquelle se trouve le ghost (voie d'origine du véhicule qui a changé de voie)
@@ -416,6 +417,8 @@ protected:
     VoieMicro *         m_pDestinationEnterLane;
     double              m_dbInstDestinationReached;
     double              m_dbDestinationTimeStep;
+
+    bool                m_bNoKnownDestination;
 
     std::set<TankSensor*> m_lstReservoirs;      // Pour garder trace des reservoirs dans lequel se trouve le v�hicule afin de pouvoir mettre � jour les r�servoir lorsque le v�hicule est d�truit sans en ressortir
 
@@ -550,6 +553,8 @@ virtual void        CalculVoiesPossibles(double dbInstant);
     TripNode*   GetOrigine();
     TripNode*   GetDestination();
 
+    void        SetNoKnownDestination(bool bNoKnownDestination);
+
     // Passage à l'étape suivante du Trip
     void        MoveToNextLeg();
 
@@ -652,7 +657,7 @@ virtual void        CalculVoiesPossibles(double dbInstant);
 
     // Gestion des ghosts
     int			GetGhostRemain()	{return	m_nGhostRemain;}
-    void        SetGhostRemain(int nGhostRemain) {m_nGhostRemain = nGhostRemain;}
+    void        SetGhostRemain(int nGhostRemain) {m_nGhostRemain = nGhostRemain; m_nGhostRemainInit = nGhostRemain;}
     boost::shared_ptr<Vehicule>	GetGhostFollower()	{return m_pGhostFollower.lock();}
     void        SetGhostFollower(boost::shared_ptr<Vehicule> pGhostFollower) {m_pGhostFollower = pGhostFollower;}
     boost::shared_ptr<Vehicule>	GetGhostLeader()	{return m_pGhostLeader.lock();}
@@ -680,7 +685,7 @@ virtual void        CalculVoiesPossibles(double dbInstant);
     std::vector<MouvementsInsertion> & GetMouvementsInsertion() {return m_MouvementsInsertion;};
 
     // Pilotage
-    double		Drive(TuyauMicro *pT, int nVoie, double dbPos, bool bForce);
+    double		Drive(TuyauMicro *pT, int nVoie, double dbPos, double * dbSpeed, double * dbAcceleration, bool bForce);
     int			Delete();
     int			AlterRoute(const std::vector<Tuyau*> & newIti);
 
