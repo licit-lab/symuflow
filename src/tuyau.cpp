@@ -1445,7 +1445,8 @@ double Tuyau::GetMaxVitReg(double dbInst, double dbPos, int numVoie)
         if( m_nResolution == RESOTUYAU_MACRO )
             pas_espace=GetLength()/m_nNbCell;
 
-        pVoie->SetPropCom(m_pReseau, this, strTmp, m_strRevetement );                                                                 
+        pVoie->SetPropCom(m_pReseau, this, strTmp, m_strRevetement );    
+        pVoie->SetPropSimu(0,pas_espace,m_dbPasTemps);                                                                 
 
         // Initialisation des vitesses max d'entrée et de sortie de la voie
         pVoie->SetVitMaxEntree(GetVitesseMax());
