@@ -2207,6 +2207,47 @@ void Vehicule::InitChgtVoie
     m_dbRand = 0;
 }
 
+double ComputeEquivalentPositionOnOtherLane(VoieMicro * pVoieOld, VoieMicro * pVoieCible, double dbPosOld)
+{
+    // le prorata sur l'ensemble de la longueur de la voie est trop imprécis pour EPiCAM sur certains tronçons
+    // avec une courbe puis une longue ligne droite, par exemple.
+    // On fait mieux en faisant le prorata sur le segment sur lequel se trouve le véhicule
+
+    // assuming both lanes of a same link have the same size of points (ensured by the method that creates lane points from link points).
+    assert(pVoieOld->GetLstPtsInternes().size() == pVoieCible->GetLstPtsInternes().size());
+
+    if (!pVoieOld->GetLstPtsInternes().empty())
+    {
+        double dbCumLengthOld = 0;
+        double dbCumLengthNew = 0;
+        double dbPosProjectionOld = dbPosOld * pVoieOld->GetLongueurProjection() / pVoieOld->GetLength();
+        Point * prevPt = pVoieOld->GetExtAmont();
+        Point * prevPtNew = pVoieCible->GetExtAmont();
+        for (size_t iPt = 0; iPt < pVoieOld->GetLstPtsInternes().size() + 1; iPt++)
+        {
+            Point * pt = iPt == pVoieOld->GetLstPtsInternes().size() ? pVoieOld->GetExtAval() : pVoieOld->GetLstPtsInternes()[iPt];
+            double dbCurSegLength = pt->DistanceTo(*prevPt);
+            
+            Point * ptNew = iPt == pVoieCible->GetLstPtsInternes().size() ? pVoieCible->GetExtAval() : pVoieCible->GetLstPtsInternes()[iPt];
+            double dbCurSegLengthNew = ptNew->DistanceTo(*prevPtNew);
+            
+            if (dbCumLengthOld + dbCurSegLength >= dbPosProjectionOld) {
+                double dbOldSegmentRatio = (dbPosProjectionOld - dbCumLengthOld) / dbCurSegLength;
+                return (dbCumLengthNew + dbOldSegmentRatio * dbCurSegLengthNew) * pVoieCible->GetLength() / pVoieCible->GetLongueurProjection();
+            }
+
+            dbCumLengthOld += dbCurSegLength;
+            dbCumLengthNew += dbCurSegLengthNew;
+
+            prevPt = pt;
+            prevPtNew = ptNew;
+        }
+    }
+
+    // we're at or after the end of the lane, or there is no internal points : we can use the previous formula
+    return dbPosOld * pVoieCible->GetLength() / pVoieOld->GetLength();
+}
+
 /// <summary>
 /// Procédure de calcul de changement de voie
 /// </summary>
@@ -2293,9 +2334,11 @@ bool Vehicule::CalculChangementVoie
         return false;
     }
 
+    double dbPositionOnTargetLane = ComputeEquivalentPositionOnOtherLane(m_pVoie[1], pVoieCible, GetPos(1));
+
     if(pVoieCible->IsPullBackInInFrontOfGuidedVehicleForbidden(m_SousType))
     {
-        boost::shared_ptr<Vehicule> pNearestAmontVehicule = m_pReseau->GetNearAmontVehicule(pVoieCible, pVoieCible->GetLength() / m_pVoie[1]->GetLength() * GetPos(1) + 0.001 );
+        boost::shared_ptr<Vehicule> pNearestAmontVehicule = m_pReseau->GetNearAmontVehicule(pVoieCible, dbPositionOnTargetLane  + 0.001);
 
         if(pNearestAmontVehicule && pNearestAmontVehicule->GetFleet() == m_pReseau->GetPublicTransportFleet()) return false;
     }
@@ -2341,10 +2384,10 @@ bool Vehicule::CalculChangementVoie
 	// Si 2 véhicules à la même position, il ne change pas de voie
 	boost::shared_ptr<Vehicule>   pVehSamePosition;
 	bool bMoveBack = false;
-	pVehSamePosition = m_pReseau->GetNearAvalVehicule(pVoieCible, pVoieCible->GetLength() / m_pVoie[1]->GetLength() * GetPos(1) - 0.01, this);
+	pVehSamePosition = m_pReseau->GetNearAvalVehicule(pVoieCible, dbPositionOnTargetLane - 0.01, this);
 	if (pVehSamePosition)
     {
-		if (fabs(pVoieCible->GetLength() / m_pVoie[1]->GetLength() * GetPos(1) - pVehSamePosition->GetPos(1)) < 0.01)
+		if (fabs(dbPositionOnTargetLane - pVehSamePosition->GetPos(1)) < 0.01)
         {
 			if (fabs(this->GetPos(1) - m_pVoie[1]->GetLength()) < 0.01)		// en bout de tronçon
 			{
@@ -2370,8 +2413,8 @@ bool Vehicule::CalculChangementVoie
         }
     }
     // Recherche des véhicules 'follower' et 'leader' de la voie cible
-    pVehFollower = m_pReseau->GetNearAmontVehicule(pVoieCible, pVoieCible->GetLength() / m_pVoie[1]->GetLength() * GetPos(1) + 0.001, -1.0, this);
-    pVehLeader = m_pReseau->GetNearAvalVehicule(pVoieCible, pVoieCible->GetLength() / m_pVoie[1]->GetLength() * GetPos(1) + 0.001, this);
+    pVehFollower = m_pReseau->GetNearAmontVehicule(pVoieCible, dbPositionOnTargetLane + 0.001, -1.0, this);
+    pVehLeader = m_pReseau->GetNearAvalVehicule(pVoieCible, dbPositionOnTargetLane + 0.001, this);
 
     if(pVehFollower)								// Si le follower sur la voie cible est ghosté, pas de changement de voie
         if(pVehFollower->GetGhostVoie() ==  pVoieCible)
@@ -2647,8 +2690,8 @@ void Vehicule::ChangementVoie
     SetVoieAnt(pVoieCible);
 
     // La position sur la voie cible est recalculée pour prendre en compte la différence possible
-    // de longueur entre les 2 voies (au prorata)
-    m_pPos[1] = m_pPos[1] * pVoieCible->GetLength() / pVoieOld->GetLength();
+    // de longueur entre les 2 voies
+    m_pPos[1] = ComputeEquivalentPositionOnOtherLane(pVoieOld, pVoieCible, m_pPos[1]);
     // correction bug n°31 : on empêche le véhicule de se rabattre derrière son follower 
     // sur la voie cible... (peut arriver à cause de l'arrondi pVoieCible->GetLength() / pVoieOld->GetLength())
     if(pVehFollower && pVehFollower->GetLink(1) == m_pTuyau[1])
